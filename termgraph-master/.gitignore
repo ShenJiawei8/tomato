@@ -1,0 +1,10 @@
+*.pyc
+venv/
+.vscode/
+.coverage
+htmlcov/
+dist/
+build/
+termgraph.egg-info/
+.coverage
+htmlcov/
