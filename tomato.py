@@ -219,6 +219,12 @@ class Timer():
 
     @classmethod
     def proceed(cls):
+        if not cls.is_paused():
+            msg = "already in working status.".format(last_day=cls.last_day)
+            notice(msg)
+            print(msg)
+            return
+
         with open(cls.last_file_name) as fin:
             items = json.loads(fin.read())
             
@@ -228,50 +234,6 @@ class Timer():
             msg = "proceed {last_day}'s work ...".format(last_day=cls.last_day)
             notice(msg)
             print(msg)
-
-    @classmethod
-    def show(cls):
-        color_title('Tomato History', 'blue', 73)
-        with open(cls.last_file_name) as fin:
-            items = json.loads(fin.read())
-            hl_sum = dict()
-            for item in items:
-                if len(item) == 2:
-                    print('* %03d:' % items.index(item), Date.format_delta(Date.delta(item[0], item[1]), with_check=True), item[0], item[1])
-                    for seg, t in Date.timing_seg_distribute(item).items():
-                        if seg not in hl_sum:
-                            hl_sum[seg] = 0
-                        hl_sum[seg] += t
-                elif items.index(item) == len(items) - 1:
-                    for seg, t in Date.timing_seg_distribute([item[0], Date.now()]).items():
-                        if seg not in hl_sum:
-                            hl_sum[seg] = 0
-                        hl_sum[seg] += t
-
-            last_item = items[-1]
-            if len(last_item) == 1:
-                end_time = Date.now()
-                tomato = Date.delta(last_item[0], Date.now())
-                print('* %03d:' % (len(items)+1), Date.format_delta(Date.delta(last_item[0], Date.now()), with_check=True), item[0], '...')
-            else:
-                end_time = last_item[1]
-
-            with open(cls.tmp_detail_data, 'w+') as fout:
-                lines = []
-                for h in Date.hour_list(items[0][0], end_time):
-                    if h in hl_sum:
-                        min = '%.2f' % round(float(hl_sum[h])/float(60), 2)
-                        lines.append(h + '    ' +  min + '\n')
-                    else:
-                        lines.append(h + '    ' +  str(0.00)+ '\n')
-                fout.writelines(lines)
-            print()
-            color_title('Hour History (unit: Minute)', 'blue', 73)
-            cmd = 'termgraph {tmp} --color cyan'.format(tmp=cls.tmp_detail_data)
-            os.system(cmd)
-                    
-
-
 
 
     @classmethod
@@ -292,7 +254,7 @@ class Timer():
     @classmethod
     def check(cls):
         with open(cls.last_file_name) as fin:
-            color_title('Tomato:', 'blue')
+            color_title('Tomato', 'blue')
             items = json.loads(fin.read())
 
             work_time = 0
@@ -307,7 +269,7 @@ class Timer():
             if len(last_item) == 1:
                 tomato = Date.delta(item[0], Date.now())
                 work_time += tomato
-                msg = '*' + " Work Status: " + "Working "
+                msg = '*' + " Now Status: " + "Working "
                 print(msg)
                 print('*', "Current:", Colorama.red(Date.format_delta(tomato)))
             else:
@@ -316,17 +278,60 @@ class Timer():
  
             notice(msg)
 
+    @classmethod
+    def show(cls):
+        color_title('Tomato History', 'blue', 73)
+        print()
+        with open(cls.last_file_name) as fin:
+            items = json.loads(fin.read())
+            hl_sum = dict()
+            work_time = 0
+            for item in items:
+                if len(item) == 2:
+                    print('* %03d:' % items.index(item), Date.format_delta(Date.delta(item[0], item[1]), with_check=True), item[0], item[1])
+                    for seg, t in Date.timing_seg_distribute(item).items():
+                        if seg not in hl_sum:
+                            hl_sum[seg] = 0
+                        hl_sum[seg] += t
+                    work_time += Date.delta(item[0], item[1])
+                elif items.index(item) == len(items) - 1:
+                    for seg, t in Date.timing_seg_distribute([item[0], Date.now()]).items():
+                        if seg not in hl_sum:
+                            hl_sum[seg] = 0
+                        hl_sum[seg] += t
+                    work_time += Date.delta(item[0], Date.now())
+
+            last_item = items[-1]
+            if len(last_item) == 1:
+                end_time = Date.now()
+                tomato = Date.delta(last_item[0], Date.now())
+                print('* %03d:' % (len(items)-1), Date.format_delta(Date.delta(last_item[0], Date.now()), with_check=True), item[0], '...')
+            else:
+                end_time = last_item[1]
+
+            with open(cls.tmp_detail_data, 'w+') as fout:
+                lines = []
+                for h in Date.hour_list(items[0][0], end_time):
+                    if h in hl_sum:
+                        min = '%.2f' % round(float(hl_sum[h])/float(60), 2)
+                        lines.append(h + '    ' +  min + '\n')
+                    else:
+                        lines.append(h + '    ' +  str(0.00)+ '\n')
+                fout.writelines(lines)
+            print()
+            color_title('Hour History (unit: Minute)', 'blue', 73)
+            cmd = 'termgraph {tmp} --color cyan'.format(tmp=cls.tmp_detail_data)
+            os.system(cmd)
+
+            start_time = items[0][0]
             wt = Date.delta(start_time, Date.now())
+            print('*', 'Rate:', Colorama.red(str(round(float(work_time) / float(wt) * 100))+' %')) 
+            print('*', 'Work Time:', Date.format_delta(work_time))
+            print('*', 'All Time: ', Date.format_delta(wt))
+            print()
+            color_title('Tomato Timer, NowTime: '+Date.now(), 'red', 73, '-')
 
-            color_title('Statistic:', 'blue')
-            print('*', 'Work Time Rate:', round(float(work_time) / float(wt) * 100), '%') 
-            print('*', 'Pause:', len(items)-1, 'times')
-            print('*', 'Worktime:', Date.format_delta(work_time))
-            print('*', 'AllTime: ', Date.format_delta(wt))
-            print('*', 'StartTime: ', start_time)
-            print('*', 'NowTime:   ', Date.now())
-
-
+                    
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="""
             work timer
@@ -369,15 +374,20 @@ if __name__ == "__main__":
 
     # Timer.check()
     while True:
-        idle_time = get_idle_time()
-        if Timer.is_paused():
-            if idle_time < 5:
-                Timer.check()
-                Timer.proceed()
-        else:
-            if idle_time > nap_seconds:
-                Timer.check()
-                Timer.pause(datetime.timedelta(seconds=-nap_seconds))
-        
-        time.sleep(1)
+        try:
+            idle_time = get_idle_time()
+            if Timer.is_paused():
+                if idle_time < 5:
+                    print('*', Date.now(), ': Status auto change to Working')
+                    Timer.proceed()
+            else:
+                if idle_time > nap_seconds:
+                    print('*', Date.now(), ': Status auto change to Paused')
+                    Timer.pause(datetime.timedelta(seconds=-nap_seconds))
+            
+            time.sleep(1)
+        except KeyboardInterrupt:
+            print()
+            Timer.show()
+            break
 
