@@ -9,8 +9,7 @@ import time
 import argparse
 import math
 from pprint import pprint
-from config import nap_seconds
-
+from config import nap_seconds, termgraph_dir
 
 def notice(content):
     title = "Work Timer"
@@ -344,7 +343,7 @@ class Timer():
                 fout.writelines(lines)
             print()
             color_title('Hour History (unit: Minute)', 'blue', 68)
-            cmd = 'termgraph {tmp} --color cyan'.format(tmp=cls.tmp_detail_data)
+            cmd = '{termgraph} {tmp} --color cyan'.format(termgraph=termgraph_dir, tmp=cls.tmp_detail_data)
             os.system(cmd)
 
             start_time = items[0][0]
