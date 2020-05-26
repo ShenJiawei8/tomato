@@ -43,11 +43,17 @@ class Colorama(object):
         return "\u001b[34m%s\u001b[0m" % (msg)
 
     @classmethod
-    def print(cls, msg, color):
+    def blink(cls, msg):
+        return "\033[5m%s\033[0m" % (msg)
+
+    @classmethod
+    def print(cls, msg, color, blink=False):
         if color == 'red':
             return cls.red(msg)
         if color == 'blue':
             return cls.blue(msg)
+        if blink:
+            return cls.blink(msg)
         return msg
 
 
@@ -81,10 +87,18 @@ class Date():
         return (d2-d1).seconds
 
     @classmethod
-    def format_delta(cls, delta, with_check=False):
+    def format_delta(cls, delta, tomato_mode=True, with_check=False, blink=True):
         hour, minute, second, tomato = cls._format_delta(delta)
-
-        return "{hour}:{minute}:{second} => {tomato} tomatoes{finish}".format(hour=hour, minute=minute, second=second, tomato=tomato, finish='✔️  ' if float(tomato) >= 1 and with_check else '   ')
+        if blink:
+            tomato_icon = Colorama.blink('🍅 ') 
+            check_icon = Colorama.blink('✅ ') 
+        else:
+            tomato_icon = '🍅 '
+            check_icon = '✅ '
+        if tomato_mode:
+            return "{hour}:{minute}  =>  {tomato} {finish}".format(hour=hour, minute=minute, tomato=tomato, finish=tomato_icon if float(tomato) >= 1 and with_check else '   ')
+        else:
+            return "{hour}:{minute} {enough_break}".format(hour=hour, minute=minute, enough_break=check_icon if delta > 300 and with_check else '   ')
 
     @classmethod
     def _format_delta(cls, delta):
@@ -280,15 +294,24 @@ class Timer():
 
     @classmethod
     def show(cls):
-        color_title('Tomato History', 'blue', 73)
+        color_title('Tomato History', 'blue', 68)
         print()
+        print('   Num   |  Work Time Interval |        Tomatos       |  Nap (5min)')
+        print('-' * 70)
+        previous_item = None
         with open(cls.last_file_name) as fin:
             items = json.loads(fin.read())
             hl_sum = dict()
             work_time = 0
             for item in items:
+
+                if previous_item:
+                    print(Date.format_delta(Date.delta(previous_item[1], item[0]), tomato_mode=False, with_check=True))
+
+                previous_item = item
+
                 if len(item) == 2:
-                    print('* %03d:' % items.index(item), Date.format_delta(Date.delta(item[0], item[1]), with_check=True), item[0], item[1])
+                    print('*  %03d:    ' % items.index(item), item[0][10:16], ' ~', item[1][10:16], '     ', Date.format_delta(Date.delta(item[0], item[1]), with_check=True), end='     ')
                     for seg, t in Date.timing_seg_distribute(item).items():
                         if seg not in hl_sum:
                             hl_sum[seg] = 0
@@ -305,9 +328,10 @@ class Timer():
             if len(last_item) == 1:
                 end_time = Date.now()
                 tomato = Date.delta(last_item[0], Date.now())
-                print('* %03d:' % (len(items)-1), Date.format_delta(Date.delta(last_item[0], Date.now()), with_check=True), item[0], '...')
+                print('*  %03d:    ' % (len(items)-1), item[0][10:16], ' ~', '  ... ',  '     ', Date.format_delta(Date.delta(last_item[0], Date.now()), with_check=True), end='    ')
             else:
                 end_time = last_item[1]
+                print(Date.format_delta(Date.delta(end_time, Date.now()), tomato_mode=False, with_check=True))
 
             with open(cls.tmp_detail_data, 'w+') as fout:
                 lines = []
@@ -319,17 +343,17 @@ class Timer():
                         lines.append(h + '    ' +  str(0.00)+ '\n')
                 fout.writelines(lines)
             print()
-            color_title('Hour History (unit: Minute)', 'blue', 73)
+            color_title('Hour History (unit: Minute)', 'blue', 68)
             cmd = 'termgraph {tmp} --color cyan'.format(tmp=cls.tmp_detail_data)
             os.system(cmd)
 
             start_time = items[0][0]
             wt = Date.delta(start_time, Date.now())
             print('*', 'Rate:', Colorama.red(str(round(float(work_time) / float(wt) * 100))+' %')) 
-            print('*', 'Work Time:', Date.format_delta(work_time))
-            print('*', 'All Time: ', Date.format_delta(wt))
+            print('*', 'Work Time:', Date.format_delta(work_time, with_check=True, blink=False))
+            print('*', 'All Time: ', Date.format_delta(wt, with_check=True, blink=False))
             print()
-            color_title('Tomato Timer, NowTime: '+Date.now(), 'red', 73, '-')
+            color_title('Tomato Timer, NowTime: '+Date.now(), 'red', 68, '-')
 
                     
 if __name__ == "__main__":
@@ -373,6 +397,7 @@ if __name__ == "__main__":
         sys.exit()
 
     # Timer.check()
+    os.system('clear')
     while True:
         try:
             idle_time = get_idle_time()
