@@ -295,7 +295,7 @@ class Timer():
     def show(cls):
         color_title('Tomato History', 'blue', 68)
         print()
-        print('   Num   |  Work Time Interval |        Tomatos       |  Nap (5min)')
+        print('   Num   |  Work Time Interval |        Tomato        |  Nap (5min)')
         print('-' * 70)
         previous_item = None
         with open(cls.last_file_name) as fin:
@@ -341,7 +341,7 @@ class Timer():
                     else:
                         lines.append(h + '    ' +  str(0.00)+ '\n')
                 fout.writelines(lines)
-            print()
+            print('\n')
             color_title('Hour History (unit: Minute)', 'blue', 68)
             cmd = '{termgraph} {tmp} --color cyan'.format(termgraph=termgraph_dir, tmp=cls.tmp_detail_data)
             os.system(cmd)
