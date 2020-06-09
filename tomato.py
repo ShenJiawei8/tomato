@@ -9,7 +9,7 @@ import time
 import argparse
 import math
 from pprint import pprint
-from config import nap_seconds, termgraph_dir
+from config import nap_seconds, termgraph_dir, auto_cut_cross_day, auto_cut_corss_day_interval_hours
 
 def notice(content):
     title = "Work Timer"
@@ -83,7 +83,7 @@ class Date():
     def delta(cls, d1, d2):
         d1 = datetime.datetime.strptime(d1, "%Y-%m-%d %H:%M:%S")
         d2 = datetime.datetime.strptime(d2, "%Y-%m-%d %H:%M:%S")
-        return (d2-d1).seconds
+        return (d2-d1).seconds + (d2-d1).days * 86400
 
     @classmethod
     def format_delta(cls, delta, tomato_mode=True, with_check=False, blink=True):
@@ -105,6 +105,7 @@ class Date():
         minute = '%02d' % int((delta % 3600) / 60)
         second = '%02d' % int(delta % 60)
         tomato = '%.2f' % round(float(delta)/float(1800), 2)
+        tomato = tomato.zfill(5)
         return hour, minute, second, tomato
 
     @classmethod
@@ -153,7 +154,8 @@ class Timer():
 
     @classmethod
     def init(cls):
-        today_file_name, last_file_name, today_symlink, today, last_day, tmp_detail_data = cls.get_file_name()
+        record_path, today_file_name, last_file_name, today_symlink, today, last_day, tmp_detail_data = cls.get_file_name()
+        cls.record_path = record_path
         cls.today_file_name = today_file_name
         cls.last_file_name = last_file_name
         cls.today_symlink = today_symlink
@@ -188,7 +190,7 @@ class Timer():
                 last_file_name = _last_file_name
                 last_day = _last_day
 
-        return today_file_name, last_file_name, today_symlink, today, last_day, tmp_detail_data
+        return path, today_file_name, last_file_name, today_symlink, today, last_day, tmp_detail_data
             
     @classmethod
     def start(cls):
@@ -217,6 +219,8 @@ class Timer():
             index = len(items) - 1 - i
             if len(items[index]) != 2:
                 got_pauser_point = True
+                pause_time = Date.now(delta)
+                pause_time = pause_time if pause_time >= items[index][0] else items[index][0]
                 items[index].append(Date.now(delta))
                 break
 
@@ -237,6 +241,11 @@ class Timer():
             notice(msg)
             print(msg)
             return
+
+        if auto_cut_cross_day is True:
+           record_path, today_file_name, last_file_name, today_symlink, today, last_day, tmp_detail_data = cls.get_file_name()
+           if today_file_name != last_file_name and get_idle_time() > auto_cut_cross_day_interval_hours * 3600:
+               cls.init()
 
         with open(cls.last_file_name) as fin:
             items = json.loads(fin.read())
@@ -265,8 +274,9 @@ class Timer():
         print(Date.format_delta(work_time))
 
     @classmethod
-    def check(cls):
-        with open(cls.last_file_name) as fin:
+    def check(cls, specific_date):
+        specific_date = cls.last_file_name if specific_date is None else os.path.join(cls.record_path, specific_date)
+        with open(specific_date) as fin:
             color_title('Tomato', 'blue')
             items = json.loads(fin.read())
 
@@ -292,13 +302,14 @@ class Timer():
             notice(msg)
 
     @classmethod
-    def show(cls):
+    def show(cls, specific_date=None):
         color_title('Tomato History', 'blue', 68)
         print()
         print('   Num   |  Work Time Interval |        Tomato        |  Nap (5min)')
         print('-' * 70)
+        specific_date = cls.last_file_name if specific_date is None else os.path.join(cls.record_path, specific_date)
         previous_item = None
-        with open(cls.last_file_name) as fin:
+        with open(specific_date) as fin:
             items = json.loads(fin.read())
             hl_sum = dict()
             work_time = 0
@@ -310,6 +321,9 @@ class Timer():
                 previous_item = item
 
                 if len(item) == 2:
+                    if item[1] <= item[0]:
+                        previous_item = None
+                        continue
                     print('*  %03d:    ' % items.index(item), item[0][10:16], ' ~', item[1][10:16], '     ', Date.format_delta(Date.delta(item[0], item[1]), with_check=True), end='     ')
                     for seg, t in Date.timing_seg_distribute(item).items():
                         if seg not in hl_sum:
@@ -347,10 +361,12 @@ class Timer():
             os.system(cmd)
 
             start_time = items[0][0]
-            wt = Date.delta(start_time, Date.now())
+            wt = Date.delta(start_time, end_time)
             print('*', 'Rate:', Colorama.red(str(round(float(work_time) / float(wt) * 100))+' %')) 
             print('*', 'Work Time:', Date.format_delta(work_time, with_check=True, blink=False))
+            print('*', 'Nap Time:', Date.format_delta((wt-work_time), with_check=True, blink=False))
             print('*', 'All Time: ', Date.format_delta(wt, with_check=True, blink=False))
+            print('*', 'Start Time: ', start_time)
             print()
             color_title('Tomato Timer, NowTime: '+Date.now(), 'red', 68, '-')
 
@@ -366,6 +382,7 @@ if __name__ == "__main__":
     parser.add_argument('-c', '--proceed', dest='proceed', action='store_true', help='proceed(continue)')
     parser.add_argument('-ck', '--check', dest='check', action='store_true', help='check')
     parser.add_argument('-s', '--show', dest='show', action='store_true', help='show history')
+    parser.add_argument('-d', '--date', dest='date', type=str, default=None, help='work with specific date, use with --check, --show command')
 
     parameters = parser.parse_args()
     
@@ -374,6 +391,9 @@ if __name__ == "__main__":
     if parameters.start:
         Timer.start()
         sys.exit()
+
+    if Timer.last_file_name is None:
+        print("Today's work is not started.")
 
     if parameters.proceed:
         Timer.proceed()
@@ -388,11 +408,11 @@ if __name__ == "__main__":
         sys.exit()
 
     if parameters.check:
-        Timer.check()
+        Timer.check(parameters.date)
         sys.exit()
 
     if parameters.show:
-        Timer.show()
+        Timer.show(parameters.date)
         sys.exit()
 
     # Timer.check()

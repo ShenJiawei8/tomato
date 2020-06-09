@@ -2,3 +2,5 @@
 
 nap_seconds = 60
 termgraph_dir = '/Users/jiawei/workspace/environ/py3/bin/termgraph'
+auto_cut_cross_day = True
+auto_cut_corss_day_interval_hours = 5
