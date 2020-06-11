@@ -368,13 +368,14 @@ class Timer():
 
             start_time = items[0][0]
             wt = Date.delta(start_time, end_time)
+            target_time = Date.now(datetime.timedelta(seconds=work_time_target_hours_one_day * 3600 - work_time))
             color_title('Summary', 'yellow', 68)
             print('*', 'Work Rate:  ', Colorama.red(str(round(float(work_time) / float(wt) * 100))+' %')) 
-            print('*', 'Work Time:  ', Date.format_delta(work_time, with_check=True, blink=False), ', Target Finish Rate: ', Colorama.red(str(round(float(work_time) / float(work_time_target_hours_one_day * 3600) * 100))+' %'))
+            print('*', 'Work Time:  ', Date.format_delta(work_time, with_check=True, blink=False), '   Target Finish Rate: ', Colorama.red(str(round(float(work_time) / float(work_time_target_hours_one_day * 3600) * 100))+' %'))
             print('*', 'Nap Time:   ', Date.format_delta((wt-work_time), with_check=False, blink=False, tomato_mode=True))
             print('*', 'All Time:   ', Date.format_delta(wt, with_check=False, blink=False, tomato_mode=True), )
             print('*', 'Start Time: ', start_time)
-            print('*', 'Target TIme:', Date.now(datetime.timedelta(seconds=work_time_target_hours_one_day * 3600 - work_time)), ' , Target Rate:  ', Colorama.red(str(round(float(work_time_target_hours_one_day * 3600) / float(work_time_target_hours_one_day * 3600 + wt - work_time) * 100))+' %'))
+            print('*', 'Target TIme:', target_time, '✅ ' if target_time <= Date.now() else '   ', '   Target Rate:  ', Colorama.red(str(round(float(work_time_target_hours_one_day * 3600) / float(work_time_target_hours_one_day * 3600 + wt - work_time) * 100))+' %'))
             print()
             color_title('Tomato Timer, NowTime: '+Date.now(), 'red', 68, '-')
 
