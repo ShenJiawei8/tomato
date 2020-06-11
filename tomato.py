@@ -9,7 +9,7 @@ import time
 import argparse
 import math
 from pprint import pprint
-from config import nap_seconds, termgraph_dir, auto_cut_cross_day, auto_cut_corss_day_interval_hours
+from config import nap_seconds, termgraph_dir, auto_cut_cross_day, auto_cut_corss_day_interval_hours, work_time_target_hours_one_day
 
 def notice(content):
     title = "Work Timer"
@@ -42,6 +42,10 @@ class Colorama(object):
         return "\u001b[34m%s\u001b[0m" % (msg)
 
     @classmethod
+    def yellow(cls, msg):
+        return "\033[33m\033[01m%s\033[0m" % (msg)
+
+    @classmethod
     def blink(cls, msg):
         return "\033[5m%s\033[0m" % (msg)
 
@@ -51,6 +55,8 @@ class Colorama(object):
             return cls.red(msg)
         if color == 'blue':
             return cls.blue(msg)
+        if color == 'yellow':
+            return cls.yellow(msg)
         if blink:
             return cls.blink(msg)
         return msg
@@ -277,7 +283,7 @@ class Timer():
     def check(cls, specific_date):
         specific_date = cls.last_file_name if specific_date is None else os.path.join(cls.record_path, specific_date)
         with open(specific_date) as fin:
-            color_title('Tomato', 'blue')
+            color_title('Tomato', 'yellow')
             items = json.loads(fin.read())
 
             work_time = 0
@@ -303,7 +309,7 @@ class Timer():
 
     @classmethod
     def show(cls, specific_date=None):
-        color_title('Tomato History', 'blue', 68)
+        color_title('Tomato History', 'yellow', 68)
         print()
         print('   Num   |  Work Time Interval |        Tomato        |  Nap (5min)')
         print('-' * 70)
@@ -356,17 +362,19 @@ class Timer():
                         lines.append(h + '    ' +  str(0.00)+ '\n')
                 fout.writelines(lines)
             print('\n')
-            color_title('Hour History (unit: Minute)', 'blue', 68)
+            color_title('Hour History (unit: Minute)', 'yellow', 68)
             cmd = '{termgraph} {tmp} --color cyan'.format(termgraph=termgraph_dir, tmp=cls.tmp_detail_data)
             os.system(cmd)
 
             start_time = items[0][0]
             wt = Date.delta(start_time, end_time)
-            print('*', 'Rate:', Colorama.red(str(round(float(work_time) / float(wt) * 100))+' %')) 
-            print('*', 'Work Time:', Date.format_delta(work_time, with_check=True, blink=False))
-            print('*', 'Nap Time:', Date.format_delta((wt-work_time), with_check=True, blink=False))
-            print('*', 'All Time: ', Date.format_delta(wt, with_check=True, blink=False))
+            color_title('Summary', 'yellow', 68)
+            print('*', 'Work Rate:  ', Colorama.red(str(round(float(work_time) / float(wt) * 100))+' %')) 
+            print('*', 'Work Time:  ', Date.format_delta(work_time, with_check=True, blink=False), ', Target Finish Rate: ', Colorama.red(str(round(float(work_time) / float(work_time_target_hours_one_day * 3600) * 100))+' %'))
+            print('*', 'Nap Time:   ', Date.format_delta((wt-work_time), with_check=False, blink=False, tomato_mode=True))
+            print('*', 'All Time:   ', Date.format_delta(wt, with_check=False, blink=False, tomato_mode=True), )
             print('*', 'Start Time: ', start_time)
+            print('*', 'Target TIme:', Date.now(datetime.timedelta(seconds=work_time_target_hours_one_day * 3600 - work_time)), ' , Target Rate:  ', Colorama.red(str(round(float(work_time_target_hours_one_day * 3600) / float(work_time_target_hours_one_day * 3600 + wt - work_time) * 100))+' %'))
             print()
             color_title('Tomato Timer, NowTime: '+Date.now(), 'red', 68, '-')
 
