@@ -160,8 +160,9 @@ class Timer():
 
     @classmethod
     def init(cls):
-        record_path, today_file_name, last_file_name, today_symlink, today, last_day, tmp_detail_data = cls.get_file_name()
+        record_path, last_files, today_file_name, last_file_name, today_symlink, today, last_day, tmp_detail_data = cls.get_file_name()
         cls.record_path = record_path
+        cls.last_files = last_files
         cls.today_file_name = today_file_name
         cls.last_file_name = last_file_name
         cls.today_symlink = today_symlink
@@ -196,7 +197,7 @@ class Timer():
                 last_file_name = _last_file_name
                 last_day = _last_day
 
-        return path, today_file_name, last_file_name, today_symlink, today, last_day, tmp_detail_data
+        return path, last_files, today_file_name, last_file_name, today_symlink, today, last_day, tmp_detail_data
             
     @classmethod
     def start(cls):
@@ -239,19 +240,26 @@ class Timer():
         else:
             print('already paused')
 
+    @classmethod
+    def auto_cut_cross_day(cls):
+        if auto_cut_cross_day is True:
+            record_path, today_file_name, last_file_name, today_symlink, today, last_day, tmp_detail_data = cls.get_file_name()
+            auto_cut_cross_day_interval_hours = 0
+            if not os.path.isfile(today_file_name) and get_idle_time() > auto_cut_cross_day_interval_hours * 3600:
+                cls.init()
+                cls.start()
+
 
     @classmethod
     def proceed(cls):
+         
+        cls.auto_cut_cross_day()
+
         if not cls.is_paused():
             msg = "already in working status.".format(last_day=cls.last_day)
             notice(msg)
             print(msg)
             return
-
-        if auto_cut_cross_day is True:
-           record_path, today_file_name, last_file_name, today_symlink, today, last_day, tmp_detail_data = cls.get_file_name()
-           if today_file_name != last_file_name and get_idle_time() > auto_cut_cross_day_interval_hours * 3600:
-               cls.init()
 
         with open(cls.last_file_name) as fin:
             items = json.loads(fin.read())
@@ -306,6 +314,10 @@ class Timer():
                 print(msg)
  
             notice(msg)
+
+    @classmethod
+    def records(cls, count=7):
+        print(cls.last_files[0:count])
 
     @classmethod
     def show(cls, specific_date=None):
@@ -392,6 +404,7 @@ if __name__ == "__main__":
     parser.add_argument('-ck', '--check', dest='check', action='store_true', help='check')
     parser.add_argument('-s', '--show', dest='show', action='store_true', help='show history')
     parser.add_argument('-d', '--date', dest='date', type=str, default=None, help='work with specific date, use with --check, --show command')
+    parser.add_argument('-r', '--records', dest='records', action='store_true', help='show history records')
 
     parameters = parser.parse_args()
     
@@ -422,6 +435,10 @@ if __name__ == "__main__":
 
     if parameters.show:
         Timer.show(parameters.date)
+        sys.exit()
+
+    if parameters.records:
+        Timer.records()
         sys.exit()
 
     # Timer.check()
