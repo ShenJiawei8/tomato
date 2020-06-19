@@ -9,7 +9,7 @@ import time
 import argparse
 import math
 from pprint import pprint
-from config import nap_seconds, termgraph_dir, auto_cut_cross_day, auto_cut_corss_day_interval_hours, work_time_target_hours_one_day
+from config import nap_seconds, termgraph_dir, auto_cut_cross_day, auto_cut_cross_day_interval_hours, work_time_target_hours_one_day
 
 def notice(content):
     title = "Work Timer"
@@ -243,7 +243,7 @@ class Timer():
     @classmethod
     def auto_cut_cross_day(cls):
         if auto_cut_cross_day is True:
-            record_path, today_file_name, last_file_name, today_symlink, today, last_day, tmp_detail_data = cls.get_file_name()
+            record_path, last_files, today_file_name, last_file_name, today_symlink, today, last_day, tmp_detail_data = cls.get_file_name()
             auto_cut_cross_day_interval_hours = 0
             if not os.path.isfile(today_file_name) and get_idle_time() > auto_cut_cross_day_interval_hours * 3600:
                 cls.init()
@@ -317,7 +317,8 @@ class Timer():
 
     @classmethod
     def records(cls, count=7):
-        print(cls.last_files[0:count])
+        for d in cls.last_files[0:count]:
+            print(d)
 
     @classmethod
     def show(cls, specific_date=None):
