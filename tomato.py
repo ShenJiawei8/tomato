@@ -317,7 +317,7 @@ class Timer():
 
     @classmethod
     def records(cls, count=7):
-        for d in cls.last_files[0:count]:
+        for d in cls.last_files[-count:]:
             print(d)
 
     @classmethod
