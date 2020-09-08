@@ -9,7 +9,7 @@ import time
 import argparse
 import math
 from pprint import pprint
-from config import nap_seconds, termgraph_dir, auto_cut_cross_day, auto_cut_cross_day_interval_hours, work_time_target_hours_one_day
+from config import nap_seconds, termgraph_dir, auto_cut_cross_day, auto_cut_cross_day_interval_hours, work_time_target_hours_one_day, daily_work_note_dir
 
 def notice(content):
     title = "Work Timer"
@@ -30,6 +30,20 @@ def update_symlink(src, dst):
         os.remove(dst)
     os.symlink(src, dst)
 
+def create_daily_note(date):
+    note_path = os.path.join(daily_work_note_dir, date)
+    if os.path.isfile(note_path):
+        return
+
+    with open(note_path, 'a+') as fout:
+        msg = '''{date}'s work started, have a nice day ~
+
+    Check Unchecked Todos of last work day first. 
+    
+    TODO:
+        1. 
+    '''.format(date=date)
+        fout.write(msg)
 
 class Colorama(object):
 
@@ -115,6 +129,10 @@ class Date():
         return hour, minute, second, tomato
 
     @classmethod
+    def weekday(cls, d):
+        return datetime.datetime.strptime(d, "%Y-%m-%d").weekday() + 1
+
+    @classmethod
     def day_hour(cls, d):
         return datetime.datetime.strptime(d, "%Y-%m-%d %H:%M:%S").strftime("%Y%m%d/%H") 
 
@@ -170,6 +188,8 @@ class Timer():
         cls.last_day = last_day
         cls.tmp_detail_data = tmp_detail_data
         update_symlink(cls.last_file_name, cls.today_symlink)
+        create_daily_note(cls.last_file_name.split('/')[-1])
+
 
     @classmethod
     def get_file_name(cls):
@@ -322,13 +342,14 @@ class Timer():
 
     @classmethod
     def show(cls, specific_date=None):
-        color_title('Tomato History', 'yellow', 68)
+        _specific_date = cls.last_file_name if specific_date is None else os.path.join(cls.record_path, specific_date)
+        _date = _specific_date.split('/')[-1]
+        color_title('Tomato History : {_date}, weekday {weekday}'.format(_date=_date, weekday=Date.weekday(_date)), 'yellow', 68)
         print()
         print('   Num   |  Work Time Interval |        Tomato        |  Nap (5min)')
         print('-' * 70)
-        specific_date = cls.last_file_name if specific_date is None else os.path.join(cls.record_path, specific_date)
         previous_item = None
-        with open(specific_date) as fin:
+        with open(_specific_date) as fin:
             items = json.loads(fin.read())
             hl_sum = dict()
             work_time = 0
@@ -388,9 +409,13 @@ class Timer():
             print('*', 'Nap Time:   ', Date.format_delta((wt-work_time), with_check=False, blink=False, tomato_mode=True))
             print('*', 'All Time:   ', Date.format_delta(wt, with_check=False, blink=False, tomato_mode=True), )
             print('*', 'Start Time: ', start_time)
-            print('*', 'Target TIme:', target_time, '✅ ' if target_time <= Date.now() else '   ', '   Target Rate:  ', Colorama.red(str(round(float(work_time_target_hours_one_day * 3600) / float(work_time_target_hours_one_day * 3600 + wt - work_time) * 100))+' %'))
+            if specific_date is None:
+                print('*', 'Target TIme:', target_time, '✅ ' if target_time <= Date.now() else '   ', '   Target Rate:  ', Colorama.red(str(round(float(work_time_target_hours_one_day * 3600) / float(work_time_target_hours_one_day * 3600 + wt - work_time) * 100))+' %'))
+            else:
+                print('*', 'Stop Time: ', last_item[1] if len(last_item) > 1 else last_item[0])
+            color_title('Tomato Timer, NowTime: '+Date.now(), 'blue', 68, '-')
             print()
-            color_title('Tomato Timer, NowTime: '+Date.now(), 'red', 68, '-')
+            os.system('cal')
 
                     
 if __name__ == "__main__":
