@@ -8,6 +8,8 @@ import datetime
 import time
 import argparse
 import math
+import subprocess
+import calendar  
 from pprint import pprint
 from config import nap_seconds, termgraph_dir, auto_cut_cross_day, auto_cut_cross_day_interval_hours, work_time_target_hours_one_day, daily_work_note_dir
 
@@ -30,20 +32,50 @@ def update_symlink(src, dst):
         os.remove(dst)
     os.symlink(src, dst)
 
+def _cal():
+    process = subprocess.Popen('cal', stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdout, _ = process.communicate()
+    return stdout.decode("utf-8")
+
 def create_daily_note(date):
     note_path = os.path.join(daily_work_note_dir, date)
     if os.path.isfile(note_path):
         return
+    else:
+        date_obj = datetime.datetime.strptime(date, "%Y-%m-%d")
+        d = date_obj + datetime.timedelta(days=-1)
+        last_day = d.strftime("%Y-%m-%d")
+        last_day_note_path = os.path.join(daily_work_note_dir, last_day)
+        _last_todo_list = []
+        with open(last_day_note_path) as fin:
+            while True:
+                line = fin.readline()
+                if not line:
+                    break
+                if '# TODO:' in line:
+                    while True:
+                        line = fin.readline()
+                        if line and '# DONE:' not in line:
+                            _last_todo_list.append(line)
+                            continue
+                        break
+                    break
 
     with open(note_path, 'a+') as fout:
-        msg = '''{date}'s work started, have a nice day ~
+        msg = '''
+{cal}
 
-    Check Unchecked Todos of last work day first. 
-    
-    TODO:
-        1. 
-    '''.format(date=date)
+{date}'s work started, have a nice day ~
+
+    # TODO:
+{last_todo} 
+    # DONE:
+    '''.format(
+            date=date,
+            cal=calendar.month(date_obj.year, date_obj.month),
+            last_todo=''.join(_last_todo_list))
         fout.write(msg)
+
 
 class Colorama(object):
 
@@ -404,16 +436,17 @@ class Timer():
             wt = Date.delta(start_time, end_time)
             target_time = Date.now(datetime.timedelta(seconds=work_time_target_hours_one_day * 3600 - work_time))
             color_title('Summary', 'yellow', 68)
-            print('*', 'Work Rate:  ', Colorama.red(str(round(float(work_time) / float(wt) * 100))+' %')) 
+            print()
             print('*', 'Work Time:  ', Date.format_delta(work_time, with_check=True, blink=False), '   Target Finish Rate: ', Colorama.red(str(round(float(work_time) / float(work_time_target_hours_one_day * 3600) * 100))+' %'))
             print('*', 'Nap Time:   ', Date.format_delta((wt-work_time), with_check=False, blink=False, tomato_mode=True))
-            print('*', 'All Time:   ', Date.format_delta(wt, with_check=False, blink=False, tomato_mode=True), )
             print('*', 'Start Time: ', start_time)
+            print('*', 'All Time:   ', Date.format_delta(wt, with_check=False, blink=False, tomato_mode=True), 'Work Rate:', Colorama.red(str(round(float(work_time) / float(wt) * 100))+' %'), ', Nap Rate:', Colorama.blue(str(round(float(wt-work_time) / float(wt) * 100))+' %'))
             if specific_date is None:
-                print('*', 'Target TIme:', target_time, '✅ ' if target_time <= Date.now() else '   ', '   Target Rate:  ', Colorama.red(str(round(float(work_time_target_hours_one_day * 3600) / float(work_time_target_hours_one_day * 3600 + wt - work_time) * 100))+' %'))
+                print('*', 'Target Time:', target_time, '✅ ' if target_time <= Date.now() else '   ', 'Work Rate Target:', Colorama.red(str(round(float(work_time_target_hours_one_day * 3600) / float(work_time_target_hours_one_day * 3600 + wt - work_time) * 100))+' %'))
             else:
                 print('*', 'Stop Time: ', last_item[1] if len(last_item) > 1 else last_item[0])
-            color_title('Tomato Timer, NowTime: '+Date.now(), 'blue', 68, '-')
+            print()
+            color_title('Tomato Timer, NowTime: '+Date.now(), 'yellow', 68, '-')
             print()
             os.system('cal')
 
