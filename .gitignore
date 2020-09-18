@@ -1,4 +1,7 @@
 __pycache__
 *.pyc
-records/
-tmp/
+.DS_Store
+log
+today
+/records/
+/tmp/
