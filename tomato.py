@@ -70,6 +70,9 @@ def create_daily_note(date):
     # TODO:
 {last_todo} 
     # DONE:
+
+@ start work record below
+
     '''.format(
             date=date,
             cal=calendar.month(date_obj.year, date_obj.month),
@@ -500,7 +503,6 @@ if __name__ == "__main__":
         Timer.records()
         sys.exit()
 
-    # Timer.check()
     os.system('clear')
     while True:
         try:
@@ -509,8 +511,7 @@ if __name__ == "__main__":
                 if idle_time < 5:
                     print('*', Date.now(), ': Status auto change to Working')
                     Timer.proceed()
-            else:
-                if idle_time > nap_seconds:
+            elif idle_time > nap_seconds:
                     print('*', Date.now(), ': Status auto change to Paused')
                     Timer.pause(datetime.timedelta(seconds=-nap_seconds))
             
