@@ -11,7 +11,10 @@ import math
 import subprocess
 import calendar  
 from pprint import pprint
-from config import nap_seconds, termgraph_dir, auto_cut_cross_day, auto_cut_cross_day_interval_hours, work_time_target_hours_one_day, daily_work_note_dir
+from config import nap_seconds, termgraph_dir, auto_cut_cross_day, \
+    auto_cut_cross_day_interval_hours, work_time_target_hours_one_day, \
+    daily_work_note_dir, target_nap_rate
+
 
 def notice(content):
     title = "Work Timer"
@@ -38,29 +41,43 @@ def _cal():
     return stdout.decode("utf-8")
 
 def create_daily_note(date):
-    note_path = os.path.join(daily_work_note_dir, date)
+    
+    def get_note_path(date):
+        return os.path.join(daily_work_note_dir, date+'.md')
+
+    note_path = get_note_path(date)
+
     if os.path.isfile(note_path):
+        print('Note file is already exist.')
         return
     else:
         date_obj = datetime.datetime.strptime(date, "%Y-%m-%d")
-        d = date_obj + datetime.timedelta(days=-1)
-        last_day = d.strftime("%Y-%m-%d")
-        last_day_note_path = os.path.join(daily_work_note_dir, last_day)
-        _last_todo_list = []
-        with open(last_day_note_path) as fin:
-            while True:
-                line = fin.readline()
-                if not line:
-                    break
-                if '# TODO:' in line:
+        for i in range(30):
+            date_obj = date_obj + datetime.timedelta(days=-1)
+            last_day = date_obj.strftime("%Y-%m-%d")
+            last_day_note_path = get_note_path(last_day) 
+            if os.path.isfile(last_day_note_path):
+                _last_todo_list = []
+                with open(last_day_note_path) as fin:
                     while True:
                         line = fin.readline()
-                        if line and '# DONE:' not in line:
-                            _last_todo_list.append(line)
-                            continue
-                        break
-                    break
+                        if not line:
+                            break
+                        if '# TODO:' in line:
+                            while True:
+                                line = fin.readline()
+                                if line and '# DONE:' not in line:
+                                    _last_todo_list.append(line)
+                                    continue
+                                break
+                            break
+                last_todo = ''.join(_last_todo_list)
+                break
+        else:
+            print('Cannot find todo of recent 30 days, init with empty todo')
+            last_todo = ''
 
+        
     with open(note_path, 'a+') as fout:
         msg = '''
 {cal}
@@ -76,7 +93,7 @@ def create_daily_note(date):
     '''.format(
             date=date,
             cal=calendar.month(date_obj.year, date_obj.month),
-            last_todo=''.join(_last_todo_list))
+            last_todo=last_todo)
         fout.write(msg)
 
 
@@ -101,11 +118,11 @@ class Colorama(object):
     @classmethod
     def print(cls, msg, color, blink=False):
         if color == 'red':
-            return cls.red(msg)
+            msg = cls.red(msg)
         if color == 'blue':
-            return cls.blue(msg)
+            msg = cls.blue(msg)
         if color == 'yellow':
-            return cls.yellow(msg)
+            msg = cls.yellow(msg)
         if blink:
             return cls.blink(msg)
         return msg
@@ -440,12 +457,20 @@ class Timer():
             target_time = Date.now(datetime.timedelta(seconds=work_time_target_hours_one_day * 3600 - work_time))
             color_title('Summary', 'yellow', 68)
             print()
-            print('*', 'Work Time:  ', Date.format_delta(work_time, with_check=True, blink=False), '   Target Finish Rate: ', Colorama.red(str(round(float(work_time) / float(work_time_target_hours_one_day * 3600) * 100))+' %'))
+            target_finish_rate = round(float(work_time) / float(work_time_target_hours_one_day * 3600) * 100)
+            target_finish_rate_str = Colorama.print(str(target_finish_rate)+' %', 
+                'blue' if target_finish_rate > 90 else 'yellow', 
+                blink = False if target_finish_rate > 90 else True)
+            print('*', 'Work Time:  ', Date.format_delta(work_time, with_check=True, blink=False), '   Target Finish Rate: ', target_finish_rate_str)
             print('*', 'Nap Time:   ', Date.format_delta((wt-work_time), with_check=False, blink=False, tomato_mode=True))
             print('*', 'Start Time: ', start_time)
-            print('*', 'All Time:   ', Date.format_delta(wt, with_check=False, blink=False, tomato_mode=True), 'Work Rate:', Colorama.red(str(round(float(work_time) / float(wt) * 100))+' %'), ', Nap Rate:', Colorama.blue(str(round(float(wt-work_time) / float(wt) * 100))+' %'))
+            nap_rate = round(float(wt-work_time) / float(wt) * 100)
+            nap_rate_str = str(nap_rate)+' %'
+            print('*', 'All Time:   ', Date.format_delta(wt, with_check=False, blink=False, tomato_mode=True), 
+                'Work Rate:', Colorama.blue(str(round(float(work_time) / float(wt) * 100))+' %'), 
+                ', Nap Rate:', Colorama.blue(nap_rate_str) if nap_rate <= target_nap_rate else Colorama.print(nap_rate_str, 'red', blink=True))
             if specific_date is None:
-                print('*', 'Target Time:', target_time, '✅ ' if target_time <= Date.now() else '   ', 'Work Rate Target:', Colorama.red(str(round(float(work_time_target_hours_one_day * 3600) / float(work_time_target_hours_one_day * 3600 + wt - work_time) * 100))+' %'))
+                print('*', 'Target Time:', target_time, '✅ ' if target_time <= Date.now() else '   ', 'Work Rate Target:', Colorama.blue(str(round(float(work_time_target_hours_one_day * 3600) / float(work_time_target_hours_one_day * 3600 + wt - work_time) * 100))+' %'))
             else:
                 print('*', 'Stop Time: ', last_item[1] if len(last_item) > 1 else last_item[0])
             print()
@@ -467,9 +492,14 @@ if __name__ == "__main__":
     parser.add_argument('-s', '--show', dest='show', action='store_true', help='show history')
     parser.add_argument('-d', '--date', dest='date', type=str, default=None, help='work with specific date, use with --check, --show command')
     parser.add_argument('-r', '--records', dest='records', action='store_true', help='show history records')
+    parser.add_argument('-cn', '--create_note', dest='create_note', action='store_true', help='create a note of the day')
 
     parameters = parser.parse_args()
-    
+ 
+    if parameters.create_note:
+        create_daily_note(parameters.date) 
+        sys.exit()   
+
     Timer.init()
 
     if parameters.start:
@@ -502,6 +532,7 @@ if __name__ == "__main__":
     if parameters.records:
         Timer.records()
         sys.exit()
+
 
     os.system('clear')
     while True:
