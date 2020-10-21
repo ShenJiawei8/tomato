@@ -13,7 +13,7 @@ import calendar
 from pprint import pprint
 from config import nap_seconds, termgraph_dir, auto_cut_cross_day, \
     auto_cut_cross_day_interval_hours, work_time_target_hours_one_day, \
-    daily_work_note_dir, target_nap_rate
+    daily_work_note_dir, target_nap_rate, schedule
 
 
 def notice(content):
@@ -48,7 +48,7 @@ def create_daily_note(date):
     note_path = get_note_path(date)
 
     if os.path.isfile(note_path):
-        print('Note file is already exist.')
+        # print('Note file is already exist.')
         return
     else:
         date_obj = datetime.datetime.strptime(date, "%Y-%m-%d")
@@ -393,7 +393,7 @@ class Timer():
             print(d)
 
     @classmethod
-    def show(cls, specific_date=None):
+    def show(cls, specific_date=None, verbose=False):
         _specific_date = cls.last_file_name if specific_date is None else os.path.join(cls.record_path, specific_date)
         _date = _specific_date.split('/')[-1]
         color_title('Tomato History : {_date}, weekday {weekday}'.format(_date=_date, weekday=Date.weekday(_date)), 'yellow', 68)
@@ -407,7 +407,7 @@ class Timer():
             work_time = 0
             for item in items:
 
-                if previous_item:
+                if previous_item and (items.index(item) > len(items) - 9 or verbose):
                     print(Date.format_delta(Date.delta(previous_item[1], item[0]), tomato_mode=False, with_check=True))
 
                 previous_item = item
@@ -416,7 +416,8 @@ class Timer():
                     if item[1] <= item[0]:
                         previous_item = None
                         continue
-                    print('*  %03d:    ' % items.index(item), item[0][10:16], ' ~', item[1][10:16], '     ', Date.format_delta(Date.delta(item[0], item[1]), with_check=True), end='     ')
+                    if items.index(item) > len(items) - 10 or verbose:
+                        print('*  %03d:    ' % items.index(item), item[0][10:16], ' ~', item[1][10:16], '     ', Date.format_delta(Date.delta(item[0], item[1]), with_check=True), end='     ')
                     for seg, t in Date.timing_seg_distribute(item).items():
                         if seg not in hl_sum:
                             hl_sum[seg] = 0
@@ -490,6 +491,7 @@ if __name__ == "__main__":
     parser.add_argument('-c', '--proceed', dest='proceed', action='store_true', help='proceed(continue)')
     parser.add_argument('-ck', '--check', dest='check', action='store_true', help='check')
     parser.add_argument('-s', '--show', dest='show', action='store_true', help='show history')
+    parser.add_argument('-v', '--verbose', dest='verbose', action='store_true', help='show all history')
     parser.add_argument('-d', '--date', dest='date', type=str, default=None, help='work with specific date, use with --check, --show command')
     parser.add_argument('-r', '--records', dest='records', action='store_true', help='show history records')
     parser.add_argument('-cn', '--create_note', dest='create_note', action='store_true', help='create a note of the day')
@@ -526,7 +528,7 @@ if __name__ == "__main__":
         sys.exit()
 
     if parameters.show:
-        Timer.show(parameters.date)
+        Timer.show(parameters.date, parameters.verbose)
         sys.exit()
 
     if parameters.records:
