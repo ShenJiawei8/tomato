@@ -43,6 +43,7 @@ def _cal():
 def create_daily_note(date):
     
     def get_note_path(date):
+        print(daily_work_note_dir, date+'.md')
         return os.path.join(daily_work_note_dir, date+'.md')
 
     note_path = get_note_path(date)
@@ -59,19 +60,20 @@ def create_daily_note(date):
             if os.path.isfile(last_day_note_path):
                 _last_todo_list = []
                 with open(last_day_note_path) as fin:
+                    get_record = False
                     while True:
                         line = fin.readline()
-                        if not line:
-                            break
-                        if '# TODO:' in line:
-                            while True:
-                                line = fin.readline()
-                                if line and '# DONE:' not in line:
-                                    _last_todo_list.append(line)
-                                    continue
-                                break
-                            break
+                        if 'work started, have a nice day ~' in line:
+                            get_record = True
+                            continue
+                        if not get_record:
+                            continue
+                        if line and '# DONE:' not in line:
+                            _last_todo_list.append(line)
+                            continue
+                        break
                 last_todo = ''.join(_last_todo_list)
+                last_todo = re.sub('# TODAY', '# '+last_day, last_todo)
                 break
         else:
             print('Cannot find todo of recent 30 days, init with empty todo')
@@ -84,13 +86,18 @@ def create_daily_note(date):
 
 {date}'s work started, have a nice day ~
 
-    # TODO:
-{last_todo} 
-    # DONE:
+{last_todo}
+
+        # TODAY:
+            * 
+
+        # DONE:
+            * 
 
 @ start work record below
 
-    '''.format(
+
+'''.format(
             date=date,
             cal=calendar.month(date_obj.year, date_obj.month),
             last_todo=last_todo)
