@@ -35,10 +35,14 @@ def update_symlink(src, dst):
         os.remove(dst)
     os.symlink(src, dst)
 
-def _cal():
-    process = subprocess.Popen('cal', stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    stdout, _ = process.communicate()
-    return stdout.decode("utf-8")
+def _cal(year, month, day):
+    s = calendar.month(year, month)
+    pre, suf = s.split('Su')
+    # date = datetime.datetime.now().strftime("%d")
+    date = str(day)
+    date = '{date}'.format(date=re.sub('^0', ' ', date))
+    suf = re.sub(date, '==', suf, count=1)
+    return pre + 'Su' + suf
 
 def create_daily_note(date):
     
@@ -47,12 +51,13 @@ def create_daily_note(date):
         return os.path.join(daily_work_note_dir, date+'.md')
 
     note_path = get_note_path(date)
+    DATE = datetime.datetime.strptime(date, "%Y-%m-%d")
 
     if os.path.isfile(note_path):
         # print('Note file is already exist.')
         return
     else:
-        date_obj = datetime.datetime.strptime(date, "%Y-%m-%d")
+        date_obj = DATE
         for i in range(30):
             date_obj = date_obj + datetime.timedelta(days=-1)
             last_day = date_obj.strftime("%Y-%m-%d")
@@ -85,7 +90,6 @@ def create_daily_note(date):
 {cal}
 
 {date}'s work started, have a nice day ~
-
 {last_todo}
 
         # TODAY:
@@ -99,7 +103,7 @@ def create_daily_note(date):
 
 '''.format(
             date=date,
-            cal=calendar.month(date_obj.year, date_obj.month),
+            cal=_cal(DATE.year, DATE.month, DATE.day),
             last_todo=last_todo)
         fout.write(msg)
 
@@ -193,6 +197,10 @@ class Date():
 
     @classmethod
     def day_hour(cls, d):
+        return datetime.datetime.strptime(d, "%Y-%m-%d %H:%M:%S").strftime("%Y%m%d/%H") 
+
+    @classmethod
+    def day(cls, d):
         return datetime.datetime.strptime(d, "%Y-%m-%d %H:%M:%S").strftime("%Y%m%d/%H") 
 
     @classmethod
