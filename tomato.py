@@ -13,7 +13,7 @@ import calendar
 from pprint import pprint
 from config import nap_seconds, termgraph_dir, auto_cut_cross_day, \
     auto_cut_cross_day_interval_hours, work_time_target_hours_one_day, \
-    daily_work_note_dir, target_nap_rate, schedule
+    daily_work_note_dir, target_nap_rate, schedule, copy_daily_work_note_symlink
 
 
 def notice(content):
@@ -38,17 +38,20 @@ def update_symlink(src, dst):
 def _cal(year, month, day):
     s = calendar.month(year, month)
     pre, suf = s.split('Su')
-    # date = datetime.datetime.now().strftime("%d")
-    date = str(day)
-    date = '{date}'.format(date=re.sub('^0', ' ', date))
+    date = re.sub('^0', ' ', str(day))
+    date = date if day >= 10 else ' %s' % date
     suf = re.sub(date, '==', suf, count=1)
-    return pre + 'Su' + suf
+    cal = pre + 'Su' + suf
+    return cal.rstrip()
 
 def create_daily_note(date):
     
     def get_note_path(date):
-        print(daily_work_note_dir, date+'.md')
         return os.path.join(daily_work_note_dir, date+'.md')
+
+    def get_note_link_path(date):
+        return os.path.join(copy_daily_work_note_symlink, date+'.md')
+
 
     note_path = get_note_path(date)
     DATE = datetime.datetime.strptime(date, "%Y-%m-%d")
@@ -106,6 +109,8 @@ def create_daily_note(date):
             cal=_cal(DATE.year, DATE.month, DATE.day),
             last_todo=last_todo)
         fout.write(msg)
+    if copy_daily_work_note_symlink is not None:
+        update_symlink(note_path, get_note_link_path(date))
 
 
 class Colorama(object):
@@ -254,6 +259,7 @@ class Timer():
         cls.today = today
         cls.last_day = last_day
         cls.tmp_detail_data = tmp_detail_data
+        # print(cls.last_file_name, cls.today_symlink)
         update_symlink(cls.last_file_name, cls.today_symlink)
         create_daily_note(cls.last_file_name.split('/')[-1])
 
@@ -510,11 +516,17 @@ if __name__ == "__main__":
     parser.add_argument('-d', '--date', dest='date', type=str, default=None, help='work with specific date, use with --check, --show command')
     parser.add_argument('-r', '--records', dest='records', action='store_true', help='show history records')
     parser.add_argument('-cn', '--create_note', dest='create_note', action='store_true', help='create a note of the day')
+    parser.add_argument('-cal', '--calenda', dest='calenda', action='store_true', help='create a note of the day')
 
     parameters = parser.parse_args()
  
     if parameters.create_note:
         create_daily_note(parameters.date) 
+        sys.exit()   
+ 
+    if parameters.calenda:
+        DATE = datetime.datetime.strptime(parameters.date, "%Y-%m-%d")
+        print(_cal(DATE.year, DATE.month, DATE.day))
         sys.exit()   
 
     Timer.init()
