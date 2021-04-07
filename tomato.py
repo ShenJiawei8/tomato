@@ -96,10 +96,10 @@ def create_daily_note(date):
 {last_todo}
 
         # TODAY:
-            * 
+            [ ] 
 
         # DONE:
-            * 
+            [x] 
 
 @ start work record below
 
@@ -185,7 +185,7 @@ class Date():
         if tomato_mode:
             return "{hour}:{minute}  =>  {tomato} {finish}".format(hour=hour, minute=minute, tomato=tomato, finish=tomato_icon if float(tomato) >= 1 and with_check else '   ')
         else:
-            return "{hour}:{minute} {enough_break}".format(hour=hour, minute=minute, enough_break=check_icon if delta > 300 and with_check else '   ')
+            return "{hour}:{minute} {enough_break}".format(hour=hour, minute=minute, enough_break=check_icon if delta > nap_seconds and with_check else '   ')
 
     @classmethod
     def _format_delta(cls, delta):
@@ -483,18 +483,19 @@ class Timer():
             target_finish_rate_str = Colorama.print(str(target_finish_rate)+' %', 
                 'blue' if target_finish_rate > 90 else 'yellow', 
                 blink = False if target_finish_rate > 90 else True)
-            print('*', 'Work Time:  ', Date.format_delta(work_time, with_check=True, blink=False), '   Target Finish Rate: ', target_finish_rate_str)
-            print('*', 'Nap Time:   ', Date.format_delta((wt-work_time), with_check=False, blink=False, tomato_mode=True))
-            print('*', 'Start Time: ', start_time)
+            print('*', 'Start Time: ', start_time[:16], '    Target Finish Rate: ', target_finish_rate_str)
+            if specific_date is None:
+                print('*', 'Target Time:', target_time[:16], '✅ ' if target_time <= Date.now() else '   ', 'Work Rate Target:', Colorama.blue(str(round(float(work_time_target_hours_one_day * 3600) / float(work_time_target_hours_one_day * 3600 + wt - work_time) * 100))+' %'))
+            else:
+                print('*', 'Stop Time: ', last_item[1] if len(last_item) > 1 else last_item[0])
             nap_rate = round(float(wt-work_time) / float(wt) * 100)
             nap_rate_str = str(nap_rate)+' %'
             print('*', 'All Time:   ', Date.format_delta(wt, with_check=False, blink=False, tomato_mode=True), 
                 'Work Rate:', Colorama.blue(str(round(float(work_time) / float(wt) * 100))+' %'), 
                 ', Nap Rate:', Colorama.blue(nap_rate_str) if nap_rate <= target_nap_rate else Colorama.print(nap_rate_str, 'red', blink=True))
-            if specific_date is None:
-                print('*', 'Target Time:', target_time, '✅ ' if target_time <= Date.now() else '   ', 'Work Rate Target:', Colorama.blue(str(round(float(work_time_target_hours_one_day * 3600) / float(work_time_target_hours_one_day * 3600 + wt - work_time) * 100))+' %'))
-            else:
-                print('*', 'Stop Time: ', last_item[1] if len(last_item) > 1 else last_item[0])
+ 
+            print('*', 'Work Time:  ', Date.format_delta(work_time, with_check=False, blink=False))
+            print('*', 'Nap Time:   ', Date.format_delta((wt-work_time), with_check=False, blink=False, tomato_mode=True))
             print()
             color_title('Tomato Timer, NowTime: '+Date.now(), 'yellow', 68, '-')
             print()
