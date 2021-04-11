@@ -35,13 +35,16 @@ def update_symlink(src, dst):
         os.remove(dst)
     os.symlink(src, dst)
 
-def _cal(year, month, day):
+def _cal(year, month, day, indent='', expand=0):
     s = calendar.month(year, month)
+    s=re.sub(r'\b', ' '*expand, s)
     pre, suf = s.split('Su')
     date = re.sub('^0', ' ', str(day))
     date = date if day >= 10 else ' %s' % date
     suf = re.sub(date, '==', suf, count=1)
     cal = pre + 'Su' + suf
+    cal=re.sub('^', indent, cal)
+    cal=re.sub('\n', '\n'+indent, cal)
     return cal.rstrip()
 
 def create_daily_note(date):
@@ -166,6 +169,13 @@ class Date():
         now = datetime.datetime.now()
         now = now + delta if delta is not None else now
         return now.strftime("%Y-%m-%d %H:%M:%S")
+
+    @classmethod
+    def today(cls, delta=None):
+        now = datetime.datetime.now()
+        now = now + delta if delta is not None else now
+        return now.strftime("%Y-%m-%d")
+
 
     @classmethod
     def delta(cls, d1, d2):
@@ -429,7 +439,7 @@ class Timer():
             for item in items:
 
                 if previous_item and (items.index(item) > len(items) - 9 or verbose):
-                    print(Date.format_delta(Date.delta(previous_item[1], item[0]), tomato_mode=False, with_check=True))
+                    print(Date.format_delta(Date.delta(previous_item[1], item[0]), tomato_mode=False, with_check=False))
 
                 previous_item = item
 
@@ -458,7 +468,7 @@ class Timer():
                 print('*  %03d:    ' % (len(items)-1), item[0][10:16], ' ~', '  ... ',  '     ', Date.format_delta(Date.delta(last_item[0], Date.now()), with_check=True), end='    ')
             else:
                 end_time = last_item[1]
-                print(Date.format_delta(Date.delta(end_time, Date.now()), tomato_mode=False, with_check=True))
+                # print(Date.format_delta(Date.delta(end_time, Date.now()), tomato_mode=False, with_check=True))
 
             with open(cls.tmp_detail_data, 'w+') as fout:
                 lines = []
@@ -487,7 +497,7 @@ class Timer():
             if specific_date is None:
                 print('*', 'Target Time:', target_time[:16], '✅ ' if target_time <= Date.now() else '   ', 'Work Rate Target:', Colorama.blue(str(round(float(work_time_target_hours_one_day * 3600) / float(work_time_target_hours_one_day * 3600 + wt - work_time) * 100))+' %'))
             else:
-                print('*', 'Stop Time: ', last_item[1] if len(last_item) > 1 else last_item[0])
+                print('*', 'Stop Time:  ', last_item[1][:16] if len(last_item) > 1 else last_item[0])
             nap_rate = round(float(wt-work_time) / float(wt) * 100)
             nap_rate_str = str(nap_rate)+' %'
             print('*', 'All Time:   ', Date.format_delta(wt, with_check=False, blink=False, tomato_mode=True), 
@@ -497,9 +507,11 @@ class Timer():
             print('*', 'Work Time:  ', Date.format_delta(work_time, with_check=False, blink=False))
             print('*', 'Nap Time:   ', Date.format_delta((wt-work_time), with_check=False, blink=False, tomato_mode=True))
             print()
-            color_title('Tomato Timer, NowTime: '+Date.now(), 'yellow', 68, '-')
+            # os.system('cal')
+            DATE = datetime.datetime.strptime(_date, "%Y-%m-%d")
+            print(_cal(DATE.year, DATE.month, DATE.day, indent=' '*23))
             print()
-            os.system('cal')
+            color_title('Tomato Timer, NowTime: '+Date.now(), 'yellow', 68, '-')
 
                     
 if __name__ == "__main__":
@@ -507,17 +519,17 @@ if __name__ == "__main__":
             work timer
     """)
 
-    parser.add_argument('-st', '--start', dest='start', action='store_true', help='start')
-    parser.add_argument('-sp', '--stop', dest='stop', action='store_true', help='stop')
-    parser.add_argument('-p', '--pause', dest='pause', action='store_true', help='pause')
-    parser.add_argument('-c', '--proceed', dest='proceed', action='store_true', help='proceed(continue)')
-    parser.add_argument('-ck', '--check', dest='check', action='store_true', help='check')
-    parser.add_argument('-s', '--show', dest='show', action='store_true', help='show history')
-    parser.add_argument('-v', '--verbose', dest='verbose', action='store_true', help='show all history')
-    parser.add_argument('-d', '--date', dest='date', type=str, default=None, help='work with specific date, use with --check, --show command')
-    parser.add_argument('-r', '--records', dest='records', action='store_true', help='show history records')
-    parser.add_argument('-cn', '--create_note', dest='create_note', action='store_true', help='create a note of the day')
-    parser.add_argument('-cal', '--calenda', dest='calenda', action='store_true', help='create a note of the day')
+    parser.add_argument('-st', '--start', dest='start', action='store_true', help="start one day's work")
+    parser.add_argument('-sp', '--stop', dest='stop', action='store_true', help="stop one day 's work ")
+    parser.add_argument('-p', '--pause', dest='pause', action='store_true', help='pause work to have a nap')
+    parser.add_argument('-c', '--proceed', dest='proceed', action='store_true', help='proceed(continue) to work, stop nap')
+    parser.add_argument('-ck', '--check', dest='check', action='store_true', help="check status of now's work")
+    parser.add_argument('-s', '--show', dest='show', action='store_true', help='show work history')
+    parser.add_argument('-v', '--verbose', dest='verbose', action='store_true', help='show history verbose, use with --show command')
+    parser.add_argument('-d', '--date', dest='date', type=str, default=Date.today(), help='choose specific date, use with --check, --show, --calenda command')
+    parser.add_argument('-r', '--records', dest='records', action='store_true', help='show workday records')
+    parser.add_argument('-cn', '--create_note', dest='create_note', action='store_true', help='create a note file of the day')
+    parser.add_argument('-cal', '--calenda', dest='calenda', action='store_true', help='show calenda of the day')
 
     parameters = parser.parse_args()
  
@@ -574,7 +586,7 @@ if __name__ == "__main__":
                     Timer.proceed()
             elif idle_time > nap_seconds:
                     print('*', Date.now(), ': Status auto change to Paused')
-                    Timer.pause(datetime.timedelta(seconds=-nap_seconds))
+                    Timer.pause(datetime.timedelta(seconds=-idle_time))
             
             time.sleep(1)
         except KeyboardInterrupt:
