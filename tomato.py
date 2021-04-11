@@ -184,7 +184,7 @@ class Date():
         return (d2-d1).seconds + (d2-d1).days * 86400
 
     @classmethod
-    def format_delta(cls, delta, tomato_mode=True, with_check=False, blink=True):
+    def format_delta(cls, delta, tomato_mode=True, with_check=False, blink=True, nap_notice=False):
         hour, minute, second, tomato = cls._format_delta(delta)
         if blink:
             tomato_icon = Colorama.blink('🍅 ') 
@@ -193,9 +193,18 @@ class Date():
             tomato_icon = '🍅 '
             check_icon = '✅ '
         if tomato_mode:
-            return "{hour}:{minute}  =>  {tomato} {finish}".format(hour=hour, minute=minute, tomato=tomato, finish=tomato_icon if float(tomato) >= 1 and with_check else '   ')
+            return "{hour}:{minute}  =>  {tomato} {finish}{nap_notice}".format(
+                hour=hour, 
+                minute=minute, 
+                tomato=tomato, 
+                finish=tomato_icon if float(tomato) >= 1 and with_check else '   ',
+                nap_notice=Colorama.print('\n [Good job! You need a nap now to relax your eyes ~ ]', 'yellow', blink=False) if nap_notice is True else '')
         else:
-            return "{hour}:{minute} {enough_break}".format(hour=hour, minute=minute, enough_break=check_icon if delta > nap_seconds and with_check else '   ')
+            return "{hour}:{minute} {enough_break}{nap_notice}".format(
+                hour=hour, 
+                minute=minute, 
+                enough_break=check_icon if delta > nap_seconds and with_check else '   ',
+                nap_notice=Colorama.print('\n [You have got enough rest, back to work now ~ ]', 'yellow', blink=False) if nap_notice is True else '')
 
     @classmethod
     def _format_delta(cls, delta):
@@ -392,7 +401,7 @@ class Timer():
 
     @classmethod
     def check(cls, specific_date):
-        specific_date = cls.last_file_name if specific_date is None else os.path.join(cls.record_path, specific_date)
+        specific_date = cls.last_file_name if specific_date == Date.today() else os.path.join(cls.record_path, specific_date)
         with open(specific_date) as fin:
             color_title('Tomato', 'yellow')
             items = json.loads(fin.read())
@@ -411,7 +420,7 @@ class Timer():
                 work_time += tomato
                 msg = '*' + " Now Status: " + "Working "
                 print(msg)
-                print('*', "Current:", Colorama.red(Date.format_delta(tomato)))
+                print('*', "Current:", Colorama.yellow(Date.format_delta(tomato, with_check=True, blink=True, nap_notice=True)))
             else:
                 msg = '*' + " Work Status: " + "paused"
                 print(msg)
@@ -425,7 +434,7 @@ class Timer():
 
     @classmethod
     def show(cls, specific_date=None, verbose=False):
-        _specific_date = cls.last_file_name if specific_date is None else os.path.join(cls.record_path, specific_date)
+        _specific_date = cls.last_file_name if specific_date==Date.today() else os.path.join(cls.record_path, specific_date)
         _date = _specific_date.split('/')[-1]
         color_title('Tomato History : {_date}, weekday {weekday}'.format(_date=_date, weekday=Date.weekday(_date)), 'yellow', 68)
         print()
@@ -494,10 +503,10 @@ class Timer():
                 'blue' if target_finish_rate > 90 else 'yellow', 
                 blink = False if target_finish_rate > 90 else True)
             print('*', 'Start Time: ', start_time[:16], '    Target Finish Rate: ', target_finish_rate_str)
-            if specific_date is None:
+            if specific_date == Date.today():
                 print('*', 'Target Time:', target_time[:16], '✅ ' if target_time <= Date.now() else '   ', 'Work Rate Target:', Colorama.blue(str(round(float(work_time_target_hours_one_day * 3600) / float(work_time_target_hours_one_day * 3600 + wt - work_time) * 100))+' %'))
             else:
-                print('*', 'Stop Time:  ', last_item[1][:16] if len(last_item) > 1 else last_item[0])
+                print('*', 'Stop Time:  ', last_item[1][:16] if len(last_item) > 1 else last_item[0][:16])
             nap_rate = round(float(wt-work_time) / float(wt) * 100)
             nap_rate_str = str(nap_rate)+' %'
             print('*', 'All Time:   ', Date.format_delta(wt, with_check=False, blink=False, tomato_mode=True), 
@@ -516,20 +525,20 @@ class Timer():
                     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="""
-            work timer
+            [Work Timer with Tomato Clock]
     """)
 
-    parser.add_argument('-st', '--start', dest='start', action='store_true', help="start one day's work")
-    parser.add_argument('-sp', '--stop', dest='stop', action='store_true', help="stop one day 's work ")
-    parser.add_argument('-p', '--pause', dest='pause', action='store_true', help='pause work to have a nap')
-    parser.add_argument('-c', '--proceed', dest='proceed', action='store_true', help='proceed(continue) to work, stop nap')
-    parser.add_argument('-ck', '--check', dest='check', action='store_true', help="check status of now's work")
-    parser.add_argument('-s', '--show', dest='show', action='store_true', help='show work history')
-    parser.add_argument('-v', '--verbose', dest='verbose', action='store_true', help='show history verbose, use with --show command')
-    parser.add_argument('-d', '--date', dest='date', type=str, default=Date.today(), help='choose specific date, use with --check, --show, --calenda command')
-    parser.add_argument('-r', '--records', dest='records', action='store_true', help='show workday records')
-    parser.add_argument('-cn', '--create_note', dest='create_note', action='store_true', help='create a note file of the day')
-    parser.add_argument('-cal', '--calenda', dest='calenda', action='store_true', help='show calenda of the day')
+    parser.add_argument('-st', '--start', dest='start', action='store_true', help="Start one day's work.")
+    parser.add_argument('-sp', '--stop', dest='stop', action='store_true', help="Stop one day's work.")
+    parser.add_argument('-p', '--pause', dest='pause', action='store_true', help='Pause work and have a nap.')
+    parser.add_argument('-c', '--proceed', dest='proceed', action='store_true', help='Proceed(continue) work and stop nap.')
+    parser.add_argument('-ck', '--check', dest='check', action='store_true', help="Check status of now's work.")
+    parser.add_argument('-s', '--show', dest='show', action='store_true', help='Show work procedure of the day.')
+    parser.add_argument('-v', '--verbose', dest='verbose', action='store_true', help='Show procedure verbose, use with --show command.')
+    parser.add_argument('-d', '--date', dest='date', type=str, default=Date.today(), help='Choose specific date, use with --check, --show, --calenda command.')
+    parser.add_argument('-r', '--records', dest='records', action='store_true', help='Show workday records.')
+    parser.add_argument('-cn', '--create_note', dest='create_note', action='store_true', help='Create a note file of the day.')
+    parser.add_argument('-cal', '--calenda', dest='calenda', action='store_true', help='Show calenda of the day.')
 
     parameters = parser.parse_args()
  
