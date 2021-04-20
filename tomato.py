@@ -13,8 +13,9 @@ import calendar
 from pprint import pprint
 from config import nap_seconds, termgraph_dir, auto_cut_cross_day, \
     auto_cut_cross_day_interval_hours, work_time_target_hours_one_day, \
-    daily_work_note_dir, target_nap_rate, schedule, copy_daily_work_note_symlink
-
+    daily_work_note_dir, target_nap_rate, schedule, copy_daily_work_note_symlink, \
+    user_name
+from utils.user_info import get_user_infos
 
 def notice(content):
     title = "Work Timer"
@@ -34,6 +35,12 @@ def update_symlink(src, dst):
     if os.path.islink(dst):
         os.remove(dst)
     os.symlink(src, dst)
+
+
+def chown_to_user(loc, user_info):
+    gid, uid = int(user_info['gid']), int(user_info['uid'])
+    return os.chown(loc, uid, gid)
+
 
 def _cal(year, month, day, indent='', expand=0):
     s = calendar.month(year, month)
@@ -112,8 +119,14 @@ def create_daily_note(date):
             cal=_cal(DATE.year, DATE.month, DATE.day),
             last_todo=last_todo)
         fout.write(msg)
+    user_infos = get_user_infos(user_name)
+    if len(user_infos):
+        chown_to_user(note_path, user_infos[0])
     if copy_daily_work_note_symlink is not None:
-        update_symlink(note_path, get_note_link_path(date))
+        symlink = get_note_link_path(date)
+        update_symlink(note_path, symlink)
+        if len(user_infos):
+            chown_to_user(symlink, user_infos[0])
 
 
 class Colorama(object):
@@ -184,7 +197,7 @@ class Date():
         return (d2-d1).seconds + (d2-d1).days * 86400
 
     @classmethod
-    def format_delta(cls, delta, tomato_mode=True, with_check=False, blink=True, nap_notice=False):
+    def format_delta(cls, delta, tomato_mode=True, with_check=False, blink=False, nap_notice=False):
         hour, minute, second, tomato = cls._format_delta(delta)
         if blink:
             tomato_icon = Colorama.blink('🍅 ') 
@@ -198,7 +211,7 @@ class Date():
                 minute=minute, 
                 tomato=tomato, 
                 finish=tomato_icon if float(tomato) >= 1 and with_check else '   ',
-                nap_notice=Colorama.print('\n [Good job! You need a nap now to relax your eyes ~ ]', 'yellow', blink=False) if nap_notice is True else '')
+                nap_notice=Colorama.print('\n [Good job! You need a nap now to relax your eyes ~ ]', 'yellow', blink=False) if nap_notice and float(tomato) >= 1 is True else '')
         else:
             return "{hour}:{minute} {enough_break}{nap_notice}".format(
                 hour=hour, 
@@ -501,7 +514,8 @@ class Timer():
             target_finish_rate = round(float(work_time) / float(work_time_target_hours_one_day * 3600) * 100)
             target_finish_rate_str = Colorama.print(str(target_finish_rate)+' %', 
                 'blue' if target_finish_rate > 90 else 'yellow', 
-                blink = False if target_finish_rate > 90 else True)
+                blink = False)
+                # blink = False if target_finish_rate > 90 else True)
             print('*', 'Start Time: ', start_time[:16], '    Target Finish Rate: ', target_finish_rate_str)
             if specific_date == Date.today():
                 print('*', 'Target Time:', target_time[:16], '✅ ' if target_time <= Date.now() else '   ', 'Work Rate Target:', Colorama.blue(str(round(float(work_time_target_hours_one_day * 3600) / float(work_time_target_hours_one_day * 3600 + wt - work_time) * 100))+' %'))
@@ -511,7 +525,7 @@ class Timer():
             nap_rate_str = str(nap_rate)+' %'
             print('*', 'All Time:   ', Date.format_delta(wt, with_check=False, blink=False, tomato_mode=True), 
                 'Work Rate:', Colorama.blue(str(round(float(work_time) / float(wt) * 100))+' %'), 
-                ', Nap Rate:', Colorama.blue(nap_rate_str) if nap_rate <= target_nap_rate else Colorama.print(nap_rate_str, 'red', blink=True))
+                ', Nap Rate:', Colorama.blue(nap_rate_str) if nap_rate <= target_nap_rate else Colorama.print(nap_rate_str, 'red', blink=False))
  
             print('*', 'Work Time:  ', Date.format_delta(work_time, with_check=False, blink=False))
             print('*', 'Nap Time:   ', Date.format_delta((wt-work_time), with_check=False, blink=False, tomato_mode=True))
@@ -520,6 +534,9 @@ class Timer():
             DATE = datetime.datetime.strptime(_date, "%Y-%m-%d")
             print(_cal(DATE.year, DATE.month, DATE.day, indent=' '*23))
             print()
+            # print(type(Date.now()), type(target_time))
+            print(Date.delta(Date.now(), target_time))
+            print(Date._format_delta(Date.delta(Date.now(), target_time)))
             color_title('Tomato Timer, NowTime: '+Date.now(), 'yellow', 68, '-')
 
                     
@@ -539,67 +556,53 @@ if __name__ == "__main__":
     parser.add_argument('-r', '--records', dest='records', action='store_true', help='Show workday records.')
     parser.add_argument('-cn', '--create_note', dest='create_note', action='store_true', help='Create a note file of the day.')
     parser.add_argument('-cal', '--calenda', dest='calenda', action='store_true', help='Show calenda of the day.')
+    parser.add_argument('-clk', '--clock', dest='clock', action='store_true', help='Run an Auto Tomato clock.')
 
     parameters = parser.parse_args()
  
     if parameters.create_note:
         create_daily_note(parameters.date) 
-        sys.exit()   
- 
-    if parameters.calenda:
+    elif parameters.calenda:
         DATE = datetime.datetime.strptime(parameters.date, "%Y-%m-%d")
         print(_cal(DATE.year, DATE.month, DATE.day))
-        sys.exit()   
 
     Timer.init()
-
-    if parameters.start:
-        Timer.start()
-        sys.exit()
-
     if Timer.last_file_name is None:
         print("Today's work is not started.")
 
-    if parameters.proceed:
+    if parameters.start:
+        Timer.start()
+    elif parameters.proceed:
         Timer.proceed()
-        sys.exit()
-
-    if parameters.pause:
+    elif parameters.pause:
         Timer.pause()
-        sys.exit()
-
-    if parameters.stop:
+    elif parameters.stop:
         Timer.stop()
-        sys.exit()
-
-    if parameters.check:
+    elif parameters.check:
         Timer.check(parameters.date)
-        sys.exit()
-
-    if parameters.show:
+    elif parameters.show:
         Timer.show(parameters.date, parameters.verbose)
-        sys.exit()
-
-    if parameters.records:
+    elif parameters.records:
         Timer.records()
-        sys.exit()
-
-
-    os.system('clear')
-    while True:
-        try:
-            idle_time = get_idle_time()
-            if Timer.is_paused():
-                if idle_time < 5:
-                    print('*', Date.now(), ': Status auto change to Working')
-                    Timer.proceed()
-            elif idle_time > nap_seconds:
-                    print('*', Date.now(), ': Status auto change to Paused')
-                    Timer.pause(datetime.timedelta(seconds=-idle_time))
-            
-            time.sleep(1)
-        except KeyboardInterrupt:
-            print()
-            Timer.show()
-            break
+    elif parameters.clock:
+        os.system('clear')
+        print(Colorama.print('Tomato Clock is Running...', 'yellow', blink=False))
+        while True:
+            try:
+                idle_time = get_idle_time()
+                if Timer.is_paused():
+                    if idle_time < 5:
+                        print('*', Date.now(), ': Status auto change to Working')
+                        Timer.proceed()
+                elif idle_time > nap_seconds:
+                        print('*', Date.now(), ': Status auto change to Paused')
+                        Timer.pause(datetime.timedelta(seconds=-idle_time))
+                
+                time.sleep(1)
+            except KeyboardInterrupt:
+                print()
+                Timer.show(parameters.date, parameters.verbose)
+                break
+    else:
+        print(Colorama.print('Use "python tomato.py -h" to get more information.', 'yellow'))
 

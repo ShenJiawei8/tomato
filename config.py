@@ -1,6 +1,7 @@
 #coding=utf-8
 
 nap_seconds = 300 # 5min
+user_name = 'jiawei' # Mac user name
 termgraph_dir = '/Users/jiawei/workspace/environ/py3/bin/termgraph'
 work_time_target_hours_one_day = 8.5
 target_nap_rate = 0.34

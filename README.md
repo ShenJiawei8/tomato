@@ -7,3 +7,6 @@ alias wp="python3 tomato.py -p"
 alias wct="python3 tomato.py -c"
 alias ws="python3 tomato.py -s"
 
+
+# TODO
+* 自动创建文件后, 设置文件的归属
