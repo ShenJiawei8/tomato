@@ -14,7 +14,7 @@ from pprint import pprint
 from config import nap_seconds, termgraph_dir, auto_cut_cross_day, \
     auto_cut_cross_day_interval_hours, work_time_target_hours_one_day, \
     daily_work_note_dir, target_nap_rate, schedule, copy_daily_work_note_symlink, \
-    user_name
+    user_name, daily_work_time_records_dir
 from utils.user_info import get_user_infos
 
 def notice(content):
@@ -222,8 +222,8 @@ class Date():
     @classmethod
     def _format_delta(cls, delta):
         hour = '%02d' % int(delta / 3600)
-        minute = '%02d' % int((delta % 3600) / 60)
-        second = '%02d' % int(delta % 60)
+        minute = '%02d' % (int((delta % 3600) / 60) if delta >= 0 else int((delta % 3600 - 3600) / 60))
+        second = '%02d' % (int(delta % 60) if delta >=0 else int(delta % 60 - 60)) 
         tomato = '%.2f' % round(float(delta)/float(1800), 2)
         tomato = tomato.zfill(5)
         return hour, minute, second, tomato
@@ -302,7 +302,8 @@ class Timer():
         last_day: "最近"一天的工作。如果结束了（最后一个节点不是正在进行中），则last_day 为 today
         '''
         path_root = os.path.split(os.path.realpath(__file__))[0]
-        path = os.path.join(path_root, 'records')
+        # path = os.path.join(path_root, 'records')
+        path = daily_work_time_records_dir
         tmp_detail_data = os.path.join(path_root, 'tmp/detail_data')
         today_file_name = os.path.join(path, Date.date())
         today_symlink = os.path.join(path_root, 'today')
@@ -518,7 +519,7 @@ class Timer():
                 # blink = False if target_finish_rate > 90 else True)
             print('*', 'Start Time: ', start_time[:16], '    Target Finish Rate: ', target_finish_rate_str)
             if specific_date == Date.today():
-                print('*', 'Target Time:', target_time[:16], '✅ ' if target_time <= Date.now() else '   ', 'Work Rate Target:', Colorama.blue(str(round(float(work_time_target_hours_one_day * 3600) / float(work_time_target_hours_one_day * 3600 + wt - work_time) * 100))+' %'))
+                print('*', 'Target Time:', target_time[:16], '✅ ' if target_time <= Date.now() else '   ', 'Work Rate Target:   ', Colorama.blue(str(round(float(work_time_target_hours_one_day * 3600) / float(work_time_target_hours_one_day * 3600 + wt - work_time) * 100))+' %'))
             else:
                 print('*', 'Stop Time:  ', last_item[1][:16] if len(last_item) > 1 else last_item[0][:16])
             nap_rate = round(float(wt-work_time) / float(wt) * 100)
@@ -527,16 +528,13 @@ class Timer():
                 'Work Rate:', Colorama.blue(str(round(float(work_time) / float(wt) * 100))+' %'), 
                 ', Nap Rate:', Colorama.blue(nap_rate_str) if nap_rate <= target_nap_rate else Colorama.print(nap_rate_str, 'red', blink=False))
  
-            print('*', 'Work Time:  ', Date.format_delta(work_time, with_check=False, blink=False))
+            print('*', 'Work Time:  ', Date.format_delta(work_time, with_check=False, blink=False), 'CountDown:', Date.format_delta(Date.delta(Date.now(), target_time)))
             print('*', 'Nap Time:   ', Date.format_delta((wt-work_time), with_check=False, blink=False, tomato_mode=True))
             print()
             # os.system('cal')
             DATE = datetime.datetime.strptime(_date, "%Y-%m-%d")
             print(_cal(DATE.year, DATE.month, DATE.day, indent=' '*23))
             print()
-            # print(type(Date.now()), type(target_time))
-            print(Date.delta(Date.now(), target_time))
-            print(Date._format_delta(Date.delta(Date.now(), target_time)))
             color_title('Tomato Timer, NowTime: '+Date.now(), 'yellow', 68, '-')
 
                     
