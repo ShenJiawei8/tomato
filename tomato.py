@@ -11,7 +11,7 @@ import math
 import subprocess
 import calendar  
 from pprint import pprint
-from config import nap_seconds, termgraph_dir, auto_cut_cross_day, \
+from bin.config import nap_seconds, termgraph_dir, auto_cut_cross_day, \
     auto_cut_cross_day_interval_hours, work_time_target_hours_one_day, \
     daily_work_note_dir, target_nap_rate, schedule, copy_daily_work_note_symlink, \
     user_name, daily_work_time_records_dir
@@ -211,7 +211,7 @@ class Date():
                 minute=minute, 
                 tomato=tomato, 
                 finish=tomato_icon if float(tomato) >= 1 and with_check else '   ',
-                nap_notice=Colorama.print('\n [Good job! You need a nap now to relax your eyes ~ ]', 'yellow', blink=False) if nap_notice and float(tomato) >= 1 is True else '')
+                nap_notice=Colorama.print('\n [Good job! You need a nap now to relax your eyes ~ ]', 'yellow', blink=False) if nap_notice and float(tomato) >= 1 else '')
         else:
             return "{hour}:{minute} {enough_break}{nap_notice}".format(
                 hour=hour, 
@@ -304,9 +304,9 @@ class Timer():
         path_root = os.path.split(os.path.realpath(__file__))[0]
         # path = os.path.join(path_root, 'records')
         path = daily_work_time_records_dir
-        tmp_detail_data = os.path.join(path_root, 'tmp/detail_data')
+        tmp_detail_data = os.path.join(path_root, 'bin/tmp/detail_data')
         today_file_name = os.path.join(path, Date.date())
-        today_symlink = os.path.join(path_root, 'today')
+        today_symlink = os.path.join(path_root, 'bin/today')
         today = Date.date()
         last_file_name = today_file_name
         last_day = today

@@ -8,7 +8,7 @@
     <true/>
     <key>ProgramArguments</key>
     <array>
-        <string>/Users/jiawei/github/tomato/auto_start_work.sh</string>
+        <string>/Users/jiawei/workspace/github/tomato/bin/run.sh</string>
     </array>
 </dict>
 </plist>
