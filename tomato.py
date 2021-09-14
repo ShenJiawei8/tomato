@@ -133,15 +133,15 @@ class Colorama(object):
 
     @classmethod
     def red(cls, msg):
-        return "\033[31m%s\033[0m" % (msg)
+        return "\033[1;31m%s\033[0m" % (msg)
 
     @classmethod
     def blue(cls, msg):
-        return "\u001b[34m%s\u001b[0m" % (msg)
+        return "\033[36m%s\033[0m" % (msg)
 
     @classmethod
     def yellow(cls, msg):
-        return "\033[33m\033[01m%s\033[0m" % (msg)
+        return "\033[1;33m\033[01m%s\033[0m" % (msg)
 
     @classmethod
     def blink(cls, msg):
