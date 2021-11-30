@@ -42,14 +42,18 @@ def chown_to_user(loc, user_info):
     return os.chown(loc, uid, gid)
 
 
-def _cal(year, month, day, indent='', expand=0):
+def _cal(year, month, day, indent='', expand=0, colorful=False):
     s = calendar.month(year, month)
     s=re.sub(r'\b', ' '*expand, s)
     pre, suf = s.split('Su')
     date = re.sub('^0', ' ', str(day))
     date = date if day >= 10 else ' %s' % date
-    suf = re.sub(date, '==', suf, count=1)
-    cal = pre + 'Su' + suf
+    if colorful is False:
+        suf = re.sub(date, '==', suf, count=1)
+        cal = pre + 'Su' + suf
+    else:
+        suf = re.sub(date, Colorama.print(date, 'red'), suf, count=1)
+        cal = Colorama.print(pre.split('\n')[0], 'yellow') + '\n' + Colorama.print(pre.split('\n')[1], 'blue') + Colorama.print('Su', 'blue') + suf
     cal=re.sub('^', indent, cal)
     cal=re.sub('\n', '\n'+indent, cal)
     return cal.rstrip()
@@ -550,19 +554,20 @@ if __name__ == "__main__":
     parser.add_argument('-ck', '--check', dest='check', action='store_true', help="Check status of now's work.")
     parser.add_argument('-s', '--show', dest='show', action='store_true', help='Show work procedure of the day.')
     parser.add_argument('-v', '--verbose', dest='verbose', action='store_true', help='Show procedure verbose, use with --show command.')
-    parser.add_argument('-d', '--date', dest='date', type=str, default=Date.today(), help='Choose specific date, use with --check, --show, --calenda command.')
+    parser.add_argument('-d', '--date', dest='date', type=str, default=Date.today(), help='Choose specific date, use with --check, --show, --calendar command.')
     parser.add_argument('-r', '--records', dest='records', action='store_true', help='Show workday records.')
     parser.add_argument('-cn', '--create_note', dest='create_note', action='store_true', help='Create a note file of the day.')
-    parser.add_argument('-cal', '--calenda', dest='calenda', action='store_true', help='Show calenda of the day.')
+    parser.add_argument('-cal', '--calendar', dest='calendar', action='store_true', help='Show calendar of the day.')
     parser.add_argument('-clk', '--clock', dest='clock', action='store_true', help='Run an Auto Tomato clock.')
 
     parameters = parser.parse_args()
  
     if parameters.create_note:
         create_daily_note(parameters.date) 
-    elif parameters.calenda:
+    elif parameters.calendar:
         DATE = datetime.datetime.strptime(parameters.date, "%Y-%m-%d")
-        print(_cal(DATE.year, DATE.month, DATE.day))
+        print(_cal(DATE.year, DATE.month, DATE.day, colorful=True))
+        sys.exit(0) 
 
     Timer.init()
     if Timer.last_file_name is None:
