@@ -17,6 +17,7 @@ from bin.config import nap_seconds, termgraph_dir, auto_cut_cross_day, \
     user_name, daily_work_time_records_dir
 from utils.user_info import get_user_infos
 
+
 def notice(content):
     title = "Work Timer"
     cmd = '''display notification "{content}"  with title "{title}" '''.format(
@@ -57,6 +58,7 @@ def _cal(year, month, day, indent='', expand=0, colorful=False):
     cal=re.sub('^', indent, cal)
     cal=re.sub('\n', '\n'+indent, cal)
     return cal.rstrip()
+
 
 def create_daily_note(date):
     
@@ -280,8 +282,6 @@ class Date():
             return result
 
 
-
-
 class Timer():
 
     @classmethod
@@ -299,14 +299,12 @@ class Timer():
         update_symlink(cls.last_file_name, cls.today_symlink)
         create_daily_note(cls.last_file_name.split('/')[-1])
 
-
     @classmethod
     def get_file_name(cls):
         '''
         last_day: "最近"一天的工作。如果结束了（最后一个节点不是正在进行中），则last_day 为 today
         '''
         path_root = os.path.split(os.path.realpath(__file__))[0]
-        # path = os.path.join(path_root, 'records')
         path = daily_work_time_records_dir
         tmp_detail_data = os.path.join(path_root, 'bin/tmp/detail_data')
         today_file_name = os.path.join(path, Date.date())
@@ -379,7 +377,6 @@ class Timer():
                 cls.init()
                 cls.start()
 
-
     @classmethod
     def proceed(cls):
          
@@ -400,7 +397,6 @@ class Timer():
             msg = "proceed {last_day}'s work ...".format(last_day=cls.last_day)
             notice(msg)
             print(msg)
-
 
     @classmethod
     def stop(cls):
@@ -544,7 +540,7 @@ class Timer():
                     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="""
-            [Work Timer with Tomato Clock]
+            [  Tomato  Timer  ] - auth by shenjiawei
     """)
 
     parser.add_argument('-st', '--start', dest='start', action='store_true', help="Start one day's work.")
@@ -564,6 +560,7 @@ if __name__ == "__main__":
  
     if parameters.create_note:
         create_daily_note(parameters.date) 
+        sys.exit(0) 
     elif parameters.calendar:
         DATE = datetime.datetime.strptime(parameters.date, "%Y-%m-%d")
         print(_cal(DATE.year, DATE.month, DATE.day, colorful=True))
