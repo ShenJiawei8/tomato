@@ -1,4 +1,6 @@
 #coding=utf-8
+#Author: shenjiawei
+
 import json
 from subprocess import call
 import os
@@ -344,6 +346,17 @@ class Timer():
             return False if len(items[-1]) == 1 else True
 
     @classmethod
+    def get_paused_time(cls):
+        with open(cls.last_file_name) as fin:
+            items = json.loads(fin.read())
+            if len(items[-1]) == 2:
+                return Date.delta(items[-1][1], Date.now())
+            else:
+                return None
+
+
+
+    @classmethod
     def pause(cls, delta=None):
         with open(cls.last_file_name) as fin:
             items = json.loads(fin.read())
@@ -540,7 +553,7 @@ class Timer():
                     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="""
-            [  Tomato  Timer  ] - auth by shenjiawei
+            [  Tomato  Timer  ] -- author : shenjiawei
     """)
 
     parser.add_argument('-st', '--start', dest='start', action='store_true', help="Start one day's work.")
@@ -591,6 +604,8 @@ if __name__ == "__main__":
             try:
                 idle_time = get_idle_time()
                 if Timer.is_paused():
+                    if Timer.get_paused_time() < 10:
+                        continue
                     if idle_time < 5:
                         print('*', Date.now(), ': Status auto change to Working')
                         Timer.proceed()

@@ -10,5 +10,9 @@
     <array>
         <string>/Users/jiawei/workspace/github/tomato/bin/run.sh</string>
     </array>
+    <key>UserName</key>
+    <string>jiawei</string>
+    <key>GroupName</key>
+    <string>staff</string>
 </dict>
 </plist>
