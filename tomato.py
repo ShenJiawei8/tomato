@@ -548,7 +548,7 @@ class Timer():
             DATE = datetime.datetime.strptime(_date, "%Y-%m-%d")
             print(_cal(DATE.year, DATE.month, DATE.day, indent=' '*23))
             print()
-            color_title('Tomato Timer, NowTime: '+Date.now(), 'yellow', 68, '-')
+            color_title('Tomato Timer :  NowTime: '+Date.now(), 'yellow', 68, '-')
 
                     
 if __name__ == "__main__":
