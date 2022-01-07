@@ -2,7 +2,7 @@
 #Author: shenjiawei
 
 import json
-from subprocess import call
+from subprocess import call, check_output
 import os
 import sys
 import re
@@ -12,13 +12,35 @@ import argparse
 import math
 import subprocess
 import calendar  
+import pty
 from pprint import pprint
 from bin.config import nap_seconds, termgraph_dir, auto_cut_cross_day, \
     auto_cut_cross_day_interval_hours, work_time_target_hours_one_day, \
     daily_work_note_dir, target_nap_rate, schedule, copy_daily_work_note_symlink, \
-    user_name, daily_work_time_records_dir
+    user_name, daily_work_time_records_dir, python_path
 from utils.user_info import get_user_infos
 
+class PrintCache():
+    def __init__(self):
+        self.cache = ''
+        pass
+
+    def add(self, *segs, endl=True):
+        output = ' '.join(segs)
+        if endl is True:
+            output += '\n'
+        self.cache += output
+
+    def get_cache(self):
+        return cache
+
+    def clear_cache(self):
+        self.cache = ''
+
+    def print(self):
+        print(self.cache, flush=True)
+        self.clear_cache()
+ 
 
 def notice(content):
     title = "Work Timer"
@@ -75,7 +97,6 @@ def create_daily_note(date):
     DATE = datetime.datetime.strptime(date, "%Y-%m-%d")
 
     if os.path.isfile(note_path):
-        # print('Note file is already exist.')
         return
     else:
         date_obj = DATE
@@ -167,6 +188,21 @@ class Colorama(object):
             return cls.blink(msg)
         return msg
 
+    @classmethod
+    def termgraph_color(cls, output, color):
+        result = []
+        output = output.split('\n')
+        for o in output:
+            if len(o) == 0:
+                continue
+            line_segs = o.split(' ')
+            line = '{t} {l} {p}'.format(
+                t=line_segs[0],
+                l=cls.print(line_segs[1], color),
+                p=line_segs[2])
+            result.append(line)
+        return '\n'.join(result)
+
 
 def color_title(msg, color, length=36, delimiter='*'):
     length = float(length)
@@ -174,7 +210,7 @@ def color_title(msg, color, length=36, delimiter='*'):
     side = (length - l) / 2
     left = math.floor(side)
     right = math.ceil(side) 
-    print(delimiter * left, Colorama.print(msg, color), delimiter * right)
+    return delimiter * left, Colorama.print(msg, color), delimiter * right
 
 
 class Date():
@@ -287,7 +323,7 @@ class Date():
 class Timer():
 
     @classmethod
-    def init(cls):
+    def init(cls, printer):
         record_path, last_files, today_file_name, last_file_name, today_symlink, today, last_day, tmp_detail_data = cls.get_file_name()
         cls.record_path = record_path
         cls.last_files = last_files
@@ -297,7 +333,7 @@ class Timer():
         cls.today = today
         cls.last_day = last_day
         cls.tmp_detail_data = tmp_detail_data
-        # print(cls.last_file_name, cls.today_symlink)
+        cls.printer = printer
         update_symlink(cls.last_file_name, cls.today_symlink)
         create_daily_note(cls.last_file_name.split('/')[-1])
 
@@ -337,7 +373,8 @@ class Timer():
             update_symlink(cls.last_file_name, cls.today_symlink)
             msg = "{today}'s work started...".format(today=cls.today)
             notice(msg)
-            print(msg)
+            cls.printer.add(msg)
+            cls.printer.print()
 
     @classmethod
     def is_paused(cls):
@@ -377,9 +414,11 @@ class Timer():
                 fout.write(json.dumps(items, indent=4))
                 msg = "{last_day}'s work paused... ".format(last_day=cls.last_day)
                 notice(msg)
-                print(msg)
+                cls.printer.add(msg)
         else:
-            print('already paused')
+            cls.printer.add('already paused')
+
+        cls.printer.print()
 
     @classmethod
     def auto_cut_cross_day(cls):
@@ -398,7 +437,7 @@ class Timer():
         if not cls.is_paused():
             msg = "already in working status.".format(last_day=cls.last_day)
             notice(msg)
-            print(msg)
+            cls.printer.add(msg)
             return
 
         with open(cls.last_file_name) as fin:
@@ -409,7 +448,9 @@ class Timer():
             fout.write(json.dumps(items, indent=4))
             msg = "proceed {last_day}'s work ...".format(last_day=cls.last_day)
             notice(msg)
-            print(msg)
+            cls.printer.add(msg)
+
+        cls.printer.print()
 
     @classmethod
     def stop(cls):
@@ -423,14 +464,15 @@ class Timer():
                 if len(item) == 2:
                     work_time += Date.delta(item[0], item[1])
 
-        print("{last_day}'s work stoped".format(last_day=cls.last_day))
-        print(Date.format_delta(work_time))
+        cls.printer.add("{last_day}'s work stoped".format(last_day=cls.last_day))
+        cls.printer.add(Date.format_delta(work_time))
+        cls.printer.print()
 
     @classmethod
     def check(cls, specific_date):
         specific_date = cls.last_file_name if specific_date == Date.today() else os.path.join(cls.record_path, specific_date)
         with open(specific_date) as fin:
-            color_title('Tomato', 'yellow')
+            cls.printer.add(*color_title('Tomato', 'yellow'))
             items = json.loads(fin.read())
 
             work_time = 0
@@ -446,27 +488,29 @@ class Timer():
                 tomato = Date.delta(item[0], Date.now())
                 work_time += tomato
                 msg = '*' + " Now Status: " + "Working "
-                print(msg)
-                print('*', "Current:", Colorama.yellow(Date.format_delta(tomato, with_check=True, blink=True, nap_notice=True)))
+                cls.printer.add(msg)
+                cls.printer.add('*', "Current:", Colorama.yellow(Date.format_delta(tomato, with_check=True, blink=True, nap_notice=True)))
             else:
                 msg = '*' + " Work Status: " + "paused"
-                print(msg)
+                cls.printer.add(msg)
  
             notice(msg)
+        cls.printer.print()
 
     @classmethod
     def records(cls, count=7):
         for d in cls.last_files[-count:]:
-            print(d)
+            cls.printer.add(d)
+        cls.printer.print()
 
     @classmethod
-    def show(cls, specific_date=None, verbose=False):
+    def show(cls, specific_date=None, verbose=False, output=None):
         _specific_date = cls.last_file_name if specific_date==Date.today() else os.path.join(cls.record_path, specific_date)
         _date = _specific_date.split('/')[-1]
-        color_title('Tomato History : {_date}, weekday {weekday}'.format(_date=_date, weekday=Date.weekday(_date)), 'yellow', 68)
-        print()
-        print('   Num   |  Work Time Interval |        Tomato        |  Nap (5min)')
-        print('-' * 70)
+        cls.printer.add(*color_title('Tomato History : {_date}, Weekday {weekday}'.format(_date=_date, weekday=Date.weekday(_date)), 'yellow', 68))
+        cls.printer.add()
+        cls.printer.add('   Num   |  Work Time Interval |        Tomato        |  Nap (5min)')
+        cls.printer.add('-' * 70)
         previous_item = None
         with open(_specific_date) as fin:
             items = json.loads(fin.read())
@@ -475,7 +519,7 @@ class Timer():
             for item in items:
 
                 if previous_item and (items.index(item) > len(items) - 9 or verbose):
-                    print(Date.format_delta(Date.delta(previous_item[1], item[0]), tomato_mode=False, with_check=False))
+                    cls.printer.add(Date.format_delta(Date.delta(previous_item[1], item[0]), tomato_mode=False, with_check=False))
 
                 previous_item = item
 
@@ -484,7 +528,7 @@ class Timer():
                         previous_item = None
                         continue
                     if items.index(item) > len(items) - 10 or verbose:
-                        print('*  %03d:    ' % items.index(item), item[0][10:16], ' ~', item[1][10:16], '     ', Date.format_delta(Date.delta(item[0], item[1]), with_check=True), end='     ')
+                        cls.printer.add('*  %03d:    ' % items.index(item), item[0][10:16], ' ~', item[1][10:16], '     ', Date.format_delta(Date.delta(item[0], item[1]), with_check=True), '     ', endl=False)
                     for seg, t in Date.timing_seg_distribute(item).items():
                         if seg not in hl_sum:
                             hl_sum[seg] = 0
@@ -501,10 +545,9 @@ class Timer():
             if len(last_item) == 1:
                 end_time = Date.now()
                 tomato = Date.delta(last_item[0], Date.now())
-                print('*  %03d:    ' % (len(items)-1), item[0][10:16], ' ~', '  ... ',  '     ', Date.format_delta(Date.delta(last_item[0], Date.now()), with_check=True), end='    ')
+                cls.printer.add('*  %03d:    ' % (len(items)-1), item[0][10:16], ' ~', '  ... ',  '     ', Date.format_delta(Date.delta(last_item[0], Date.now()), with_check=True), '    ', endl=False)
             else:
                 end_time = last_item[1]
-                # print(Date.format_delta(Date.delta(end_time, Date.now()), tomato_mode=False, with_check=True))
 
             with open(cls.tmp_detail_data, 'w+') as fout:
                 lines = []
@@ -515,40 +558,43 @@ class Timer():
                     else:
                         lines.append(h + '    ' +  str(0.00)+ '\n')
                 fout.writelines(lines)
-            print('\n')
-            color_title('Hour History (unit: Minute)', 'yellow', 68)
+            cls.printer.add('\n')
+            cls.printer.add(*color_title('Hour History (unit: Minute)', 'yellow', 68))
             cmd = '{termgraph} {tmp} --color cyan'.format(termgraph=termgraph_dir, tmp=cls.tmp_detail_data)
-            os.system(cmd)
+            result = check_output(cmd, shell=True, stderr=subprocess.STDOUT)
+            cls.printer.add()
+            cls.printer.add(Colorama.termgraph_color(result.decode()[:-1], 'blue'))
+            cls.printer.add()
 
             start_time = items[0][0]
             wt = Date.delta(start_time, end_time)
             target_time = Date.now(datetime.timedelta(seconds=work_time_target_hours_one_day * 3600 - work_time))
-            color_title('Summary', 'yellow', 68)
-            print()
+            cls.printer.add(*color_title('Summary', 'yellow', 68))
+            cls.printer.add()
             target_finish_rate = round(float(work_time) / float(work_time_target_hours_one_day * 3600) * 100)
             target_finish_rate_str = Colorama.print(str(target_finish_rate)+' %', 
                 'blue' if target_finish_rate > 90 else 'yellow', 
                 blink = False)
                 # blink = False if target_finish_rate > 90 else True)
-            print('*', 'Start Time: ', start_time[:16], '    Target Finish Rate: ', target_finish_rate_str)
+            cls.printer.add('*', 'Start Time: ', start_time[:16], '    Target Finish Rate: ', target_finish_rate_str)
             if specific_date == Date.today():
-                print('*', 'Target Time:', target_time[:16], '✅ ' if target_time <= Date.now() else '   ', 'Work Rate Target:   ', Colorama.blue(str(round(float(work_time_target_hours_one_day * 3600) / float(work_time_target_hours_one_day * 3600 + wt - work_time) * 100))+' %'))
+                cls.printer.add('*', 'Target Time:', target_time[:16], '✅ ' if target_time <= Date.now() else '   ', 'Work Rate Target:   ', Colorama.blue(str(round(float(work_time_target_hours_one_day * 3600) / float(work_time_target_hours_one_day * 3600 + wt - work_time) * 100))+' %'))
             else:
-                print('*', 'Stop Time:  ', last_item[1][:16] if len(last_item) > 1 else last_item[0][:16])
+                cls.printer.add('*', 'Stop Time:  ', last_item[1][:16] if len(last_item) > 1 else last_item[0][:16])
             nap_rate = round(float(wt-work_time) / float(wt) * 100)
             nap_rate_str = str(nap_rate)+' %'
-            print('*', 'All Time:   ', Date.format_delta(wt, with_check=False, blink=False, tomato_mode=True), 
+            cls.printer.add('*', 'All Time:   ', Date.format_delta(wt, with_check=False, blink=False, tomato_mode=True), 
                 'Work Rate:', Colorama.blue(str(round(float(work_time) / float(wt) * 100))+' %'), 
                 ', Nap Rate:', Colorama.blue(nap_rate_str) if nap_rate <= target_nap_rate else Colorama.print(nap_rate_str, 'red', blink=False))
  
-            print('*', 'Work Time:  ', Date.format_delta(work_time, with_check=False, blink=False), 'CountDown:', Date.format_delta(Date.delta(Date.now(), target_time)))
-            print('*', 'Nap Time:   ', Date.format_delta((wt-work_time), with_check=False, blink=False, tomato_mode=True))
-            print()
-            # os.system('cal')
+            cls.printer.add('*', 'Work Time:  ', Date.format_delta(work_time, with_check=False, blink=False), 'CountDown:', Date.format_delta(Date.delta(Date.now(), target_time)))
+            cls.printer.add('*', 'Nap Time:   ', Date.format_delta((wt-work_time), with_check=False, blink=False, tomato_mode=True))
+            cls.printer.add()
             DATE = datetime.datetime.strptime(_date, "%Y-%m-%d")
-            print(_cal(DATE.year, DATE.month, DATE.day, indent=' '*23))
-            print()
-            color_title('Tomato Timer :  NowTime: '+Date.now(), 'yellow', 68, '-')
+            cls.printer.add(_cal(DATE.year, DATE.month, DATE.day, indent=' '*23))
+            cls.printer.add()
+            cls.printer.add(*color_title('Tomato Timer :  NowTime: '+Date.now(), 'yellow', 68, '-'))
+            cls.printer.print()
 
                     
 if __name__ == "__main__":
@@ -563,25 +609,40 @@ if __name__ == "__main__":
     parser.add_argument('-ck', '--check', dest='check', action='store_true', help="Check status of now's work.")
     parser.add_argument('-s', '--show', dest='show', action='store_true', help='Show work procedure of the day.')
     parser.add_argument('-v', '--verbose', dest='verbose', action='store_true', help='Show procedure verbose, use with --show command.')
-    parser.add_argument('-d', '--date', dest='date', type=str, default=Date.today(), help='Choose specific date, use with --check, --show, --calendar command.')
+    parser.add_argument('-d', '--date', dest='date', type=str, default=Date.today(), help='''Choose specific date. 
+        eg : 2021-01-01 or -1 for delta -1 day from today, use with --check, --show, --calendar command.''')
     parser.add_argument('-r', '--records', dest='records', action='store_true', help='Show workday records.')
     parser.add_argument('-cn', '--create_note', dest='create_note', action='store_true', help='Create a note file of the day.')
     parser.add_argument('-cal', '--calendar', dest='calendar', action='store_true', help='Show calendar of the day.')
     parser.add_argument('-clk', '--clock', dest='clock', action='store_true', help='Run an Auto Tomato clock.')
 
     parameters = parser.parse_args()
+
+    printer = PrintCache()
+
+    try:
+        parameters.date = int(parameters.date)
+    except:
+        pass
+
+    if parameters.date is not None and isinstance(parameters.date, int):
+        _delta_days = int(parameters.date)
+        _date = datetime.datetime.strptime(Date.today(), "%Y-%m-%d") + datetime.timedelta(days=_delta_days)
+        parameters.date = _date.strftime("%Y-%m-%d")
  
     if parameters.create_note:
         create_daily_note(parameters.date) 
         sys.exit(0) 
     elif parameters.calendar:
         DATE = datetime.datetime.strptime(parameters.date, "%Y-%m-%d")
-        print(_cal(DATE.year, DATE.month, DATE.day, colorful=True))
+        printer.add(_cal(DATE.year, DATE.month, DATE.day, colorful=True), endl=True)
+        printer.print()
         sys.exit(0) 
 
-    Timer.init()
+    Timer.init(printer)
     if Timer.last_file_name is None:
-        print("Today's work is not started.")
+        printer.add("Today's work is not started.")
+        printer.print()
 
     if parameters.start:
         Timer.start()
