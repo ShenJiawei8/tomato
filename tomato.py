@@ -367,14 +367,16 @@ class Timer():
             
     @classmethod
     def start(cls):
-        with open(cls.last_file_name, 'w') as fout:
-            item = json.dumps([[Date.now()]], indent=4)
-            fout.write(item)
+        if not os.path.isfile(cls.last_file_name):
+            with open(cls.last_file_name, 'w') as fout:
+                item = json.dumps([[Date.now()]], indent=4)
+                fout.write(item)
             update_symlink(cls.last_file_name, cls.today_symlink)
             msg = "{today}'s work started...".format(today=cls.today)
-            notice(msg)
-            cls.printer.add(msg)
-            cls.printer.print()
+        else:
+            msg = "{today}'s work is already started.".format(today=cls.today)
+        cls.printer.add(msg)
+        cls.printer.print()
 
     @classmethod
     def is_paused(cls):
@@ -507,6 +509,10 @@ class Timer():
     def show(cls, specific_date=None, verbose=False, output=None):
         _specific_date = cls.last_file_name if specific_date==Date.today() else os.path.join(cls.record_path, specific_date)
         _date = _specific_date.split('/')[-1]
+        if not os.path.isfile(_specific_date):
+            cls.printer.add(Colorama.red('No record.'))
+            cls.printer.print()
+            return 
         cls.printer.add(*color_title('Tomato History : {_date}, Weekday {weekday}'.format(_date=_date, weekday=Date.weekday(_date)), 'yellow', 68))
         cls.printer.add()
         cls.printer.add('   Num   |  Work Time Interval |        Tomato        |  Nap (5min)')
@@ -602,19 +608,19 @@ if __name__ == "__main__":
             [  Tomato  Timer  ] -- author : shenjiawei
     """)
 
-    parser.add_argument('-st', '--start', dest='start', action='store_true', help="Start one day's work.")
-    parser.add_argument('-sp', '--stop', dest='stop', action='store_true', help="Stop one day's work.")
-    parser.add_argument('-p', '--pause', dest='pause', action='store_true', help='Pause work and have a nap.')
-    parser.add_argument('-c', '--proceed', dest='proceed', action='store_true', help='Proceed(continue) work and stop nap.')
-    parser.add_argument('-ck', '--check', dest='check', action='store_true', help="Check status of now's work.")
-    parser.add_argument('-s', '--show', dest='show', action='store_true', help='Show work procedure of the day.')
-    parser.add_argument('-v', '--verbose', dest='verbose', action='store_true', help='Show procedure verbose, use with --show command.')
-    parser.add_argument('-d', '--date', dest='date', type=str, default=Date.today(), help='''Choose specific date. 
+    parser.add_argument('-st', '--start', dest='start', action='store_true', help="start one day's work.")
+    parser.add_argument('-sp', '--stop', dest='stop', action='store_true', help="stop one day's work.")
+    parser.add_argument('-p', '--pause', dest='pause', action='store_true', help='pause work and have a nap.')
+    parser.add_argument('-c', '--proceed', dest='proceed', action='store_true', help='proceed(continue) work and stop nap.')
+    parser.add_argument('-ck', '--check', dest='check', action='store_true', help="check status of now's work.")
+    parser.add_argument('-s', '--show', dest='show', action='store_true', help='show work procedure of the day.')
+    parser.add_argument('-v', '--verbose', dest='verbose', action='store_true', help='show procedure verbose, use with --show command.')
+    parser.add_argument('-d', '--date', dest='date', type=str, default=Date.today(), help='''choose specific date. 
         eg : 2021-01-01 or -1 for delta -1 day from today, use with --check, --show, --calendar command.''')
-    parser.add_argument('-r', '--records', dest='records', action='store_true', help='Show workday records.')
-    parser.add_argument('-cn', '--create_note', dest='create_note', action='store_true', help='Create a note file of the day.')
-    parser.add_argument('-cal', '--calendar', dest='calendar', action='store_true', help='Show calendar of the day.')
-    parser.add_argument('-clk', '--clock', dest='clock', action='store_true', help='Run an Auto Tomato clock.')
+    parser.add_argument('-r', '--records', dest='records', action='store_true', help='show workday records.')
+    parser.add_argument('-cn', '--create_note', dest='create_note', action='store_true', help='create a note file of the day.')
+    parser.add_argument('-cal', '--calendar', dest='calendar', action='store_true', help='show calendar of the day.')
+    parser.add_argument('-clk', '--clock', dest='clock', action='store_true', help='run an Auto Tomato clock.')
 
     parameters = parser.parse_args()
 
