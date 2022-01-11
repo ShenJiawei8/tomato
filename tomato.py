@@ -16,8 +16,8 @@ import pty
 from pprint import pprint
 from bin.config import nap_seconds, auto_cut_cross_day, \
     auto_cut_cross_day_interval_hours, work_time_target_hours_one_day, \
-    daily_work_note_dir, target_nap_rate, schedule, copy_daily_work_note_symlink, \
-    user_name, daily_work_time_records_dir, python_path
+    daily_work_note_dir, target_nap_rate, copy_daily_work_note_symlink, \
+    user_name, daily_work_time_records_dir
 from utils.user_info import get_user_infos
 
 class PrintCache():
@@ -598,7 +598,7 @@ class Timer():
             cls.printer.add('\n')
             cls.printer.add(*Colorama.color_title('Hour History (unit: Minute)', 'yellow', 68))
             cls.printer.add()
-            cls.printer.add('    1        10        20        30        40        50        60')
+            cls.printer.add('   00        10        20        30        40        50        60')
             hl_sum_visual = Date.visualize_map(hl_sum)
             for h in Date.hour_list(items[0][0], end_time):
                 cls.printer.add(h[9:]+': ', endl=False)
