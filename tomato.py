@@ -236,23 +236,23 @@ class Date():
     def format_delta(cls, delta, tomato_mode=True, with_check=False, blink=False, nap_notice=False):
         hour, minute, second, tomato = cls._format_delta(delta)
         if blink:
-            tomato_icon = Colorama.print('🍅 ', blink=True) 
+            tomato_icon = Colorama.print('x 🍅', blink=True) 
             check_icon = Colorama.print('✅ ', blink=True) 
         else:
-            tomato_icon = '🍅 '
+            tomato_icon = 'x 🍅'
             check_icon = '✅ '
         if tomato_mode:
             return "{hour}:{minute}  =>  {tomato} {finish}{nap_notice}".format(
                 hour=hour, 
                 minute=minute, 
                 tomato=tomato, 
-                finish=tomato_icon if float(tomato) >= 1 and with_check else '   ',
+                finish=tomato_icon if float(tomato) >= 1 and with_check else '    ',
                 nap_notice=Colorama.print('\n [Good job! You need a nap now to relax your eyes ~ ]', 'yellow', blink=False) if nap_notice and float(tomato) >= 1 else '')
         else:
             return "{hour}:{minute} {enough_break}{nap_notice}".format(
                 hour=hour, 
                 minute=minute, 
-                enough_break=check_icon if delta > nap_seconds and with_check else '   ',
+                enough_break=check_icon if delta > nap_seconds and with_check else '    ',
                 nap_notice=Colorama.print('\n [You have got enough rest, back to work now ~ ]', 'yellow', blink=False) if nap_notice is True else '')
 
     @classmethod
@@ -359,7 +359,7 @@ class Date():
 class Timer():
 
     @classmethod
-    def init(cls, printer):
+    def init(cls, printer=None):
         record_path, last_files, today_file_name, last_file_name, today_symlink, today, last_day, tmp_detail_data = cls.get_file_name()
         cls.record_path = record_path
         cls.last_files = last_files
@@ -369,7 +369,8 @@ class Timer():
         cls.today = today
         cls.last_day = last_day
         cls.tmp_detail_data = tmp_detail_data
-        cls.printer = printer
+        if printer is not None:
+            cls.printer = printer
         update_symlink(cls.last_file_name, cls.today_symlink)
         create_daily_note(cls.last_file_name.split('/')[-1])
 
@@ -416,12 +417,19 @@ class Timer():
 
     @classmethod
     def is_paused(cls):
+        if not os.path.isfile(cls.last_file_name):
+            # work is not started.
+            return True
         with open(cls.last_file_name) as fin:
             items = json.loads(fin.read())
             return False if len(items[-1]) == 1 else True
 
     @classmethod
     def get_paused_time(cls):
+        if not os.path.isfile(cls.last_file_name):
+            # work is not started.
+            return None
+
         with open(cls.last_file_name) as fin:
             items = json.loads(fin.read())
             if len(items[-1]) == 2:
@@ -551,7 +559,7 @@ class Timer():
             return 
         cls.printer.add(*Colorama.color_title('Tomato History : {_date}, Weekday {weekday}'.format(_date=_date, weekday=Date.weekday(_date)), 'yellow', 68))
         cls.printer.add()
-        cls.printer.add('   Num   |  Work Time Interval |        Tomato        |  Nap (5min)')
+        cls.printer.add('   Num   |  Work Time Interval |        Tomato         |  Nap (5min)')
         cls.printer.add('-' * 70)
         previous_item = None
         with open(_specific_date) as fin:
@@ -570,7 +578,7 @@ class Timer():
                         previous_item = None
                         continue
                     if items.index(item) > len(items) - 10 or verbose:
-                        cls.printer.add('*  %03d:    ' % items.index(item), item[0][10:16], ' ~', item[1][10:16], '     ', Date.format_delta(Date.delta(item[0], item[1]), with_check=True), '     ', endl=False)
+                        cls.printer.add('*  %03d:    ' % items.index(item), item[0][10:16], ' ~', item[1][10:16], '   ', Date.format_delta(Date.delta(item[0], item[1]), with_check=True), '    ', endl=False)
                     for seg, t in Date.timing_seg_distribute(item).items():
                         if seg not in hl_sum:
                             hl_sum[seg] = t
@@ -591,7 +599,7 @@ class Timer():
             if len(last_item) == 1:
                 end_time = Date.now()
                 tomato = Date.delta(last_item[0], Date.now())
-                cls.printer.add('*  %03d:    ' % (len(items)-1), item[0][10:16], ' ~', '  ... ',  '     ', Date.format_delta(Date.delta(last_item[0], Date.now()), with_check=True), '    ', endl=False)
+                cls.printer.add('*  %03d:    ' % (len(items)-1), item[0][10:16], ' ~', '  ... ',  '   ', Date.format_delta(Date.delta(last_item[0], Date.now()), with_check=True), '   ', endl=False)
             else:
                 end_time = last_item[1]
 
@@ -619,18 +627,18 @@ class Timer():
                 'blue' if target_finish_rate > 90 else 'yellow', 
                 blink = False)
                 # blink = False if target_finish_rate > 90 else True)
-            cls.printer.add('*', 'Start Time: ', start_time[:16], '    Target Finish Rate: ', target_finish_rate_str)
+            cls.printer.add('*', 'Start Time: ', start_time[:16], '     * Target Finish Rate: ', target_finish_rate_str)
             if specific_date == Date.today():
-                cls.printer.add('*', 'Target Time:', target_time[:16], '✅ ' if target_time <= Date.now() else '   ', 'Work Rate Target:   ', Colorama.print(str(round(float(work_time_target_hours_one_day * 3600) / float(work_time_target_hours_one_day * 3600 + wt - work_time) * 100))+' %', 'blue'))
+                cls.printer.add('  *  Target Time:', target_time[:16], '✅' if target_time <= Date.now() else '  ', '* Work Rate Target:   ', Colorama.print(str(round(float(work_time_target_hours_one_day * 3600) / float(work_time_target_hours_one_day * 3600 + wt - work_time) * 100))+' %', 'blue'))
             else:
                 cls.printer.add('*', 'Stop Time:  ', last_item[1][:16] if len(last_item) > 1 else last_item[0][:16])
             nap_rate = round(float(wt-work_time) / float(wt) * 100)
             nap_rate_str = str(nap_rate)+' %'
             cls.printer.add('*', 'All Time:   ', Date.format_delta(wt, with_check=False, blink=False, tomato_mode=True), 
-                'Work Rate:', Colorama.print(str(round(float(work_time) / float(wt) * 100))+' %', 'blue'), 
+                '* Work Rate:', Colorama.print(str(round(float(work_time) / float(wt) * 100))+' %', 'blue'), 
                 ', Nap Rate:', Colorama.print(nap_rate_str, 'blue') if nap_rate <= target_nap_rate else Colorama.print(nap_rate_str, 'red', blink=False))
  
-            cls.printer.add('*', 'Work Time:  ', Date.format_delta(work_time, with_check=False, blink=False), 'CountDown:', Date.format_delta(Date.delta(Date.now(), target_time)))
+            cls.printer.add('*', 'Work Time:  ', Date.format_delta(work_time, with_check=False, blink=False), '* CountDown:', Date.format_delta(Date.delta(Date.now(), target_time)))
             cls.printer.add('*', 'Nap Time:   ', Date.format_delta((wt-work_time), with_check=False, blink=False, tomato_mode=True))
             cls.printer.add()
             DATE = datetime.datetime.strptime(_date, "%Y-%m-%d")
@@ -708,12 +716,16 @@ if __name__ == "__main__":
         Timer.records()
     elif parameters.clock:
         os.system('clear')
-        print(Colorama.print('Tomato Clock is Running...', 'yellow', blink=False))
+        printer.add(Colorama.print('Tomato Clock is Running...', 'yellow', blink=False))
+        printer.print()
         while True:
             try:
+                time.sleep(1)
+
                 idle_time = get_idle_time()
                 if Timer.is_paused():
-                    if Timer.get_paused_time() < 10:
+                    paused_time = Timer.get_paused_time()
+                    if paused_time is not None and paused_time < 10:
                         continue
                     if idle_time < 5:
                         print('*', Date.now(), ': Status auto change to Working')
@@ -722,9 +734,9 @@ if __name__ == "__main__":
                         print('*', Date.now(), ': Status auto change to Paused')
                         Timer.pause(datetime.timedelta(seconds=-idle_time))
                 
-                time.sleep(1)
             except KeyboardInterrupt:
-                print()
+                printer.add()
+                printer.print()
                 Timer.show(parameters.date, parameters.verbose)
                 break
     else:
