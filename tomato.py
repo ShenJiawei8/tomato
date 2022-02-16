@@ -70,15 +70,16 @@ def chown_to_user(loc, user_info):
     gid, uid = int(user_info['gid']), int(user_info['uid'])
     return os.chown(loc, uid, gid)
 
+    
+def get_note_path(date):
+    return os.path.join(daily_work_note_dir, date+'.md')
+
+
+def get_note_link_path(date):
+    return os.path.join(copy_daily_work_note_symlink, date+'.md')
+
 
 def create_daily_note(date):
-    
-    def get_note_path(date):
-        return os.path.join(daily_work_note_dir, date+'.md')
-
-    def get_note_link_path(date):
-        return os.path.join(copy_daily_work_note_symlink, date+'.md')
-
 
     note_path = get_note_path(date)
     DATE = datetime.datetime.strptime(date, "%Y-%m-%d")
@@ -114,8 +115,7 @@ def create_daily_note(date):
             last_todo = ''
         
     with open(note_path, 'a+') as fout:
-        msg = '''
-{cal}
+        msg = '''{cal}
 
 {date}'s work started, have a nice day ~
 {last_todo}
@@ -131,7 +131,7 @@ def create_daily_note(date):
 
 '''.format(
             date=date,
-            cal=Colorama._cal(DATE.year, DATE.month, DATE.day),
+            cal=Colorama._cal(DATE.year, DATE.month, DATE.day, for_note=True),
             last_todo=last_todo)
         fout.write(msg)
     user_infos = get_user_infos(user_name)
@@ -143,13 +143,15 @@ def create_daily_note(date):
         if len(user_infos):
             chown_to_user(symlink, user_infos[0])
 
+def output_tomato_record_to_note(date):
+    pass
 
 class Colorama(object):
     with_color=False
 
     @classmethod
     def _red(cls, msg):
-        return "\033[1;31m%s\033[0m" % (msg)
+        return "\033[31m%s\033[0m" % (msg)
 
     @classmethod
     def _blue(cls, msg):
@@ -157,7 +159,7 @@ class Colorama(object):
 
     @classmethod
     def _yellow(cls, msg):
-        return "\033[1;33m\033[01m%s\033[0m" % (msg)
+        return "\033[33m%s\033[0m" % (msg)
 
     @classmethod
     def _blink(cls, msg):
@@ -188,7 +190,8 @@ class Colorama(object):
             cls.print(msg, color), cls.print(delimiter * right, delimiter_color)
 
     @classmethod
-    def _cal(cls, year, month, day, indent='', expand=0):
+    def _cal(cls, year, month, day, indent='', expand=0, for_note=False):
+        _with_color = Colorama.with_color if for_note is True else None
         s = calendar.month(year, month)
         s=re.sub(r'\b', ' '*expand, s)
         pre, suf = s.split('Su')
@@ -198,10 +201,23 @@ class Colorama(object):
             suf = re.sub(date, '==', suf, count=1)
             cal = pre + 'Su' + suf
         else:
+            date_lines = suf.split('\n')
+            suf_lines = list()
+            for line in date_lines:
+                if len(line) == 20:
+                    weekend = re.split(' +', line[-5:].strip())
+                    sat, sun = weekend[0], weekend[1]
+                    sat = sat if int(sat) >= 10 else ' %s' % sat
+                    sun = sun if int(sun) >= 10 else ' %s' % sun
+                    line = line[:-5] + cls.print(sat, 'yellow') + ' ' + cls.print(sun, 'yellow')
+                suf_lines.append(line)
+            suf = '\n'.join(suf_lines)
             suf = re.sub(date, cls.print(date, 'red'), suf, count=1)
             cal = cls.print(pre.split('\n')[0], 'yellow') + '\n' + cls.print(pre.split('\n')[1], 'blue') + cls.print('Su', 'blue') + suf
         cal=re.sub('^', indent, cal)
         cal=re.sub('\n', '\n'+indent, cal)
+        if for_note is True:
+            Colorama.with_color = _with_color
         return cal.rstrip()
 
 
@@ -545,7 +561,13 @@ class Timer():
 
     @classmethod
     def records(cls, count=7):
-        for d in cls.last_files[-count:]:
+        cls.printer.add('''Already record {days} days' work, recent {count} days are below:'''.format(
+            days=Colorama.print(str(len(cls.last_files)), 'red'),
+            count=count))
+        cls.printer.add()
+        recent_days = cls.last_files[-count:]
+        recent_days.reverse()
+        for d in recent_days:
             cls.printer.add(d)
         cls.printer.print()
 
@@ -629,7 +651,7 @@ class Timer():
                 # blink = False if target_finish_rate > 90 else True)
             cls.printer.add('*', 'Start Time: ', start_time[:16], '     * Target Finish Rate: ', target_finish_rate_str)
             if specific_date == Date.today():
-                cls.printer.add('  *  Target Time:', target_time[:16], '✅' if target_time <= Date.now() else '  ', '* Work Rate Target:   ', Colorama.print(str(round(float(work_time_target_hours_one_day * 3600) / float(work_time_target_hours_one_day * 3600 + wt - work_time) * 100))+' %', 'blue'))
+                cls.printer.add('* Target Time:', target_time[:16], '✅' if target_time <= Date.now() else '    ', '* Work Rate Target:   ', Colorama.print(str(round(float(work_time_target_hours_one_day * 3600) / float(work_time_target_hours_one_day * 3600 + wt - work_time) * 100))+' %', 'blue'))
             else:
                 cls.printer.add('*', 'Stop Time:  ', last_item[1][:16] if len(last_item) > 1 else last_item[0][:16])
             nap_rate = round(float(wt-work_time) / float(wt) * 100)
@@ -655,6 +677,7 @@ if __name__ == "__main__":
 
     parser.add_argument('-st', '--start', dest='start', action='store_true', help="start one day's work.")
     parser.add_argument('-sp', '--stop', dest='stop', action='store_true', help="stop one day's work.")
+    parser.add_argument('-nt', '--new_tomato', dest='new_tomato', action='store_true', help="start a new tomato.")
     parser.add_argument('-p', '--pause', dest='pause', action='store_true', help='pause work and have a nap.')
     parser.add_argument('-c', '--proceed', dest='proceed', action='store_true', help='proceed(continue) work and stop nap.')
     parser.add_argument('-ck', '--check', dest='check', action='store_true', help="check status of now's work.")
@@ -702,6 +725,13 @@ if __name__ == "__main__":
 
     if parameters.start:
         Timer.start()
+    elif parameters.new_tomato:
+        Timer.pause()
+        Timer.proceed()
+        printer.add(Colorama.print('A new tomato started.', 'yellow', blink=False))
+        printer.print()
+    elif parameters.pause:
+        Timer.pause()
     elif parameters.proceed:
         Timer.proceed()
     elif parameters.pause:
@@ -733,6 +763,7 @@ if __name__ == "__main__":
                 elif idle_time > nap_seconds:
                         print('*', Date.now(), ': Status auto change to Paused')
                         Timer.pause(datetime.timedelta(seconds=-idle_time))
+                # elif 
                 
             except KeyboardInterrupt:
                 printer.add()
