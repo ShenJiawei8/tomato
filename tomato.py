@@ -79,12 +79,15 @@ def get_note_link_path(date):
     return os.path.join(copy_daily_work_note_symlink, date+'.md')
 
 
-def create_daily_note(date):
+def create_daily_note(date, printer=None):
 
     note_path = get_note_path(date)
     DATE = datetime.datetime.strptime(date, "%Y-%m-%d")
 
     if os.path.isfile(note_path):
+        if printer:
+            printer.add('Note file({note_path}) is already exit, skip create.'.format(note_path=note_path))
+            printer.print()
         return
     else:
         date_obj = DATE
@@ -111,7 +114,9 @@ def create_daily_note(date):
                 last_todo = re.sub('# TODAY', '# '+last_day, last_todo)
                 break
         else:
-            print('Cannot find todo of recent 30 days, init with empty todo')
+            if printer:
+                printer.add('Cannot find todo of recent 30 days, init with empty todo')
+                printer.print()
             last_todo = ''
         
     with open(note_path, 'a+') as fout:
@@ -191,33 +196,39 @@ class Colorama(object):
 
     @classmethod
     def _cal(cls, year, month, day, indent='', expand=0, for_note=False):
-        _with_color = Colorama.with_color if for_note is True else None
+        _with_color = False if for_note is True else Colorama.with_color
         s = calendar.month(year, month)
         s=re.sub(r'\b', ' '*expand, s)
         pre, suf = s.split('Su')
         date = re.sub('^0', ' ', str(day))
         date = date if day >= 10 else ' %s' % date
-        if Colorama.with_color is False:
+        if _with_color is False:
             suf = re.sub(date, '==', suf, count=1)
             cal = pre + 'Su' + suf
         else:
             date_lines = suf.split('\n')
             suf_lines = list()
             for line in date_lines:
-                if len(line) == 20:
-                    weekend = re.split(' +', line[-5:].strip())
-                    sat, sun = weekend[0], weekend[1]
-                    sat = sat if int(sat) >= 10 else ' %s' % sat
-                    sun = sun if int(sun) >= 10 else ' %s' % sun
-                    line = line[:-5] + cls.print(sat, 'yellow') + ' ' + cls.print(sun, 'yellow')
+                if len(line) > 0:
+                    weekend = re.split(' +', line[15:].strip())
+                    if len(weekend) == 1 and len(line.strip()) >= 4:
+                        sat = weekend[0]
+                        sun = ''
+                    elif len(weekend) == 1 and len(line.strip()) < 4:
+                        sun = weekend[0]
+                        sat = ''
+                    else:
+                        sat, sun = weekend[0], weekend[1]
+
+                    sat = sat if len(sat) > 0 and int(sat) >= 10 else ' %s' % sat if len(sat)>0 else '  '
+                    sun = sun if len(sun) > 0 and int(sun) >= 10 else ' %s' % sun
+                    line = line if len(line) < 17 else line[:15] + cls.print(sat, 'yellow') + ' ' + cls.print(sun, 'yellow')
                 suf_lines.append(line)
             suf = '\n'.join(suf_lines)
             suf = re.sub(date, cls.print(date, 'red'), suf, count=1)
             cal = cls.print(pre.split('\n')[0], 'yellow') + '\n' + cls.print(pre.split('\n')[1], 'blue') + cls.print('Su', 'blue') + suf
         cal=re.sub('^', indent, cal)
         cal=re.sub('\n', '\n'+indent, cal)
-        if for_note is True:
-            Colorama.with_color = _with_color
         return cal.rstrip()
 
 
@@ -307,7 +318,7 @@ class Date():
 
     @classmethod
     def merge_visualize(cls, map_start, map_end):
-        hour_map = [int(i) for i in ('0'*60)]
+        hour_map = [int(i) for i in ('0'* 60)]
         for i in range(60):
             hour_map[i] = map_start[i] | map_end[i]
         return hour_map
@@ -602,6 +613,7 @@ class Timer():
                     if items.index(item) > len(items) - 10 or verbose:
                         cls.printer.add('*  %03d:    ' % items.index(item), item[0][10:16], ' ~', item[1][10:16], '   ', Date.format_delta(Date.delta(item[0], item[1]), with_check=True), '    ', endl=False)
                     for seg, t in Date.timing_seg_distribute(item).items():
+                        # print(seg, t)
                         if seg not in hl_sum:
                             hl_sum[seg] = t
                         else:
@@ -711,7 +723,7 @@ if __name__ == "__main__":
         parameters.date = _date.strftime("%Y-%m-%d")
  
     if parameters.create_note:
-        create_daily_note(parameters.date) 
+        create_daily_note(parameters.date, printer=printer) 
         sys.exit(0) 
     elif parameters.calendar:
         DATE = datetime.datetime.strptime(parameters.date, "%Y-%m-%d")
