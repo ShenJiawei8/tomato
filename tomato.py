@@ -328,8 +328,10 @@ class Date():
         def _visualize_hour(start, end):
             hour_map = [int(i) for i in ('0'*60)]
             start_min = int(start.strftime("%M"))
+            start_hour = int(start.strftime("%H"))
             end_min = int(end.strftime("%M"))
-            end_min = 60 if end_min == 0 else end_min
+            end_hour = int(end.strftime("%H"))
+            end_min = 60 if end_min == 0 and start_hour != end_hour else end_min
             for i in range(start_min, end_min):
                 hour_map[i] = 1
             return hour_map
@@ -613,7 +615,6 @@ class Timer():
                     if items.index(item) > len(items) - 10 or verbose:
                         cls.printer.add('*  %03d:    ' % items.index(item), item[0][10:16], ' ~', item[1][10:16], '   ', Date.format_delta(Date.delta(item[0], item[1]), with_check=True), '    ', endl=False)
                     for seg, t in Date.timing_seg_distribute(item).items():
-                        # print(seg, t)
                         if seg not in hl_sum:
                             hl_sum[seg] = t
                         else:
@@ -687,6 +688,7 @@ if __name__ == "__main__":
             [  Tomato  Timer  ] -- author : shenjiawei
     """)
 
+    parser.add_argument('-dg', '--debug', dest='debug', action='store_true', help="debug code")
     parser.add_argument('-st', '--start', dest='start', action='store_true', help="start one day's work.")
     parser.add_argument('-sp', '--stop', dest='stop', action='store_true', help="stop one day's work.")
     parser.add_argument('-nt', '--new_tomato', dest='new_tomato', action='store_true', help="start a new tomato.")
@@ -735,6 +737,8 @@ if __name__ == "__main__":
         printer.add("Today's work is not started.")
         printer.print()
 
+    if parameters.debug:
+        pass
     if parameters.start:
         Timer.start()
     elif parameters.new_tomato:
