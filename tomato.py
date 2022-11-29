@@ -195,7 +195,7 @@ class Colorama(object):
             cls.print(msg, color), cls.print(delimiter * right, delimiter_color)
 
     @classmethod
-    def _cal(cls, year, month, day, indent='', expand=0, for_note=False):
+    def _cal(cls, year, month, day, indent='', expand=0, for_note=False, highlight=True):
         _with_color = False if for_note is True else Colorama.with_color
         s = calendar.month(year, month)
         s=re.sub(r'\b', ' '*expand, s)
@@ -203,7 +203,8 @@ class Colorama(object):
         date = re.sub('^0', ' ', str(day))
         date = date if day >= 10 else ' %s' % date
         if _with_color is False:
-            suf = re.sub(date, '==', suf, count=1)
+            if highlight:
+                suf = re.sub(date, '==', suf, count=1)
             cal = pre + 'Su' + suf
         else:
             date_lines = suf.split('\n')
@@ -225,12 +226,37 @@ class Colorama(object):
                     line = line if len(line) < 17 else line[:15] + cls.print(sat, 'yellow') + ' ' + cls.print(sun, 'yellow')
                 suf_lines.append(line)
             suf = '\n'.join(suf_lines)
-            suf = re.sub(date, cls.print(date, 'red'), suf, count=1)
+            if highlight:
+                suf = re.sub(date, cls.print(date, 'red'), suf, count=1)
             cal = cls.print(pre.split('\n')[0], 'yellow') + '\n' + cls.print(pre.split('\n')[1], 'blue') + cls.print('Su', 'blue') + suf
         cal=re.sub('^', indent, cal)
         cal=re.sub('\n', '\n'+indent, cal)
-        return cal.rstrip()
+        # return cal.rstrip()
+        return cal
 
+    @classmethod
+    def _cal_month_expand(cls, year, month, day, indent=' ', expand=0):
+        date_obj = datetime.datetime.strptime("{year}-{month}-{day}".format(year=year, month=month, day=day), "%Y-%m-%d")
+        date_month_first_day_obj = datetime.datetime.strptime("{year}-{month}-01".format(year=year, month=month), "%Y-%m-%d")
+        month_next = date_month_first_day_obj + datetime.timedelta(days=32)
+        month_before = date_month_first_day_obj + datetime.timedelta(days=-1)
+        cal = cls._cal(year, month, day, indent='', expand=expand, for_note=True, highlight=True)
+        cal_next = cls._cal(month_next.year, month_next.month, month_next.day, indent='', expand=expand, for_note=True, highlight=False)
+        cal_before = cls._cal(month_before.year, month_before.month, month_before.day, indent='', expand=expand, for_note=True, highlight=False)
+        cal_expand_lines = []
+        for lines in zip(cal_before.split('\n'), cal.split('\n'), cal_next.split('\n')):
+            _lines = []
+            for line in lines:
+                if len(line) < 20:
+                    _line = line + (20 - len(line)) * ' '
+                else:
+                    _line = line
+                _lines.append(_line)
+            cal_expand_lines.append('   '.join(_lines))
+        _cal_expand = '\n'.join(cal_expand_lines)
+        if Colorama.with_color:
+            _cal_expand = re.sub("==", cls.print(day, 'red'), _cal_expand, count=1)
+        return _cal_expand
 
 
 class Date():
@@ -677,7 +703,10 @@ class Timer():
             cls.printer.add('*', 'Nap Time:   ', Date.format_delta((wt-work_time), with_check=False, blink=False, tomato_mode=True))
             cls.printer.add()
             DATE = datetime.datetime.strptime(_date, "%Y-%m-%d")
-            cls.printer.add(Colorama._cal(DATE.year, DATE.month, DATE.day, indent=' '*23))
+            # cls.printer.add(Colorama._cal(DATE.year, DATE.month, DATE.day, indent=' '*23))
+            cls.printer.add(*Colorama.color_title('Calendar', 'yellow', 68))
+            cls.printer.add()
+            cls.printer.add(Colorama._cal_month_expand(DATE.year, DATE.month, DATE.day))
             cls.printer.add()
             cls.printer.add(*Colorama.color_title('Tomato Timer :  NowTime: '+Date.now(), 'yellow', 68))
             cls.printer.print()
