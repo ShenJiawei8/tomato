@@ -20,6 +20,8 @@ from bin.config import nap_seconds, auto_cut_cross_day, \
     user_name, daily_work_time_records_dir
 from utils.user_info import get_user_infos
 
+TABLE_WIDTH = 70
+
 class PrintCache():
     def __init__(self, local_file=None):
         self.cache = ''
@@ -235,7 +237,7 @@ class Colorama(object):
         return cal
 
     @classmethod
-    def _cal_month_expand(cls, year, month, day, indent=' ', expand=0):
+    def _cal_month_expand(cls, year, month, day, indent='', expand=0):
         date_obj = datetime.datetime.strptime("{year}-{month}-{day}".format(year=year, month=month, day=day), "%Y-%m-%d")
         date_month_first_day_obj = datetime.datetime.strptime("{year}-{month}-01".format(year=year, month=month), "%Y-%m-%d")
         month_next = date_month_first_day_obj + datetime.timedelta(days=32)
@@ -252,10 +254,11 @@ class Colorama(object):
                 else:
                     _line = line
                 _lines.append(_line)
-            cal_expand_lines.append('   '.join(_lines))
+            cal_expand_lines.append(indent + '   '.join(_lines))
         _cal_expand = '\n'.join(cal_expand_lines)
         if Colorama.with_color:
-            _cal_expand = re.sub("==", cls.print(day, 'red'), _cal_expand, count=1)
+            date = str(day) if day >= 10 else ' %s' % str(day)
+            _cal_expand = re.sub("==", cls.print(date, 'red'), _cal_expand, count=1)
         return _cal_expand
 
 
@@ -618,7 +621,7 @@ class Timer():
             cls.printer.add(Colorama.print('No record.', 'red'))
             cls.printer.print()
             return 
-        cls.printer.add(*Colorama.color_title('Tomato History : {_date}, Weekday {weekday}'.format(_date=_date, weekday=Date.weekday(_date)), 'yellow', 68))
+        cls.printer.add(*Colorama.color_title('Tomato History : {_date}, Weekday {weekday}'.format(_date=_date, weekday=Date.weekday(_date)), 'yellow', TABLE_WIDTH))
         cls.printer.add()
         cls.printer.add('   Num   |  Work Time Interval |        Tomato         |  Nap (5min)')
         cls.printer.add('-' * 70)
@@ -665,7 +668,7 @@ class Timer():
                 end_time = last_item[1]
 
             cls.printer.add('\n')
-            cls.printer.add(*Colorama.color_title('Hour History (unit: Minute)', 'yellow', 68))
+            cls.printer.add(*Colorama.color_title('Hour History (unit: Minute)', 'yellow', TABLE_WIDTH))
             cls.printer.add()
             cls.printer.add('   00        10        20        30        40        50        60')
             hl_sum_visual = Date.visualize_map(hl_sum)
@@ -681,7 +684,7 @@ class Timer():
             start_time = items[0][0]
             wt = Date.delta(start_time, end_time)
             target_time = Date.now(datetime.timedelta(seconds=work_time_target_hours_one_day * 3600 - work_time))
-            cls.printer.add(*Colorama.color_title('Summary', 'yellow', 68))
+            cls.printer.add(*Colorama.color_title('Summary', 'yellow', TABLE_WIDTH))
             cls.printer.add()
             target_finish_rate = round(float(work_time) / float(work_time_target_hours_one_day * 3600) * 100)
             target_finish_rate_str = Colorama.print(str(target_finish_rate)+' %', 
@@ -704,11 +707,11 @@ class Timer():
             cls.printer.add()
             DATE = datetime.datetime.strptime(_date, "%Y-%m-%d")
             # cls.printer.add(Colorama._cal(DATE.year, DATE.month, DATE.day, indent=' '*23))
-            cls.printer.add(*Colorama.color_title('Calendar', 'yellow', 68))
+            cls.printer.add(*Colorama.color_title('Calendar', 'yellow', TABLE_WIDTH))
             cls.printer.add()
-            cls.printer.add(Colorama._cal_month_expand(DATE.year, DATE.month, DATE.day))
+            cls.printer.add(Colorama._cal_month_expand(DATE.year, DATE.month, DATE.day, indent='  '))
             cls.printer.add()
-            cls.printer.add(*Colorama.color_title('Tomato Timer :  NowTime: '+Date.now(), 'yellow', 68))
+            cls.printer.add(*Colorama.color_title('Tomato Timer :  NowTime: '+Date.now(), 'yellow', TABLE_WIDTH))
             cls.printer.print()
 
                     
