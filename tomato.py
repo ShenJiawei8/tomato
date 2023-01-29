@@ -17,7 +17,7 @@ from pprint import pprint
 from bin.config import nap_seconds, auto_cut_cross_day, \
     auto_cut_cross_day_interval_hours, work_time_target_hours_one_day, \
     daily_work_note_dir, target_nap_rate, copy_daily_work_note_symlink, \
-    user_name, daily_work_time_records_dir
+    user_name, daily_work_time_records_dir, use_notice
 from utils.user_info import get_user_infos
 
 TABLE_WIDTH = 70
@@ -49,12 +49,13 @@ class PrintCache():
  
 
 def notice(content):
-    title = "Work Timer"
-    cmd = '''display notification "{content}"  with title "{title}" '''.format(
-        content=content,
-        title=title
-    )
-    call(["osascript", "-e", cmd])
+    if use_notice:
+        title = "Tomato Work Timer"
+        cmd = '''display notification "{content}"  with title "{title}" '''.format(
+            content=content,
+            title=title
+        )
+        call(["osascript", "-e", cmd])
 
 
 def get_idle_time():
