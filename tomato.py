@@ -19,6 +19,7 @@ from bin.config import nap_seconds, auto_cut_cross_day, \
     daily_work_note_dir, target_nap_rate, copy_daily_work_note_symlink, \
     user_name, daily_work_time_records_dir, use_notice
 from utils.user_info import get_user_infos
+from utils.install import install
 
 TABLE_WIDTH = 70
 
@@ -396,7 +397,6 @@ class Date():
             
     @classmethod
     def visualize_map(cls, map_dict):
-        result = dict()
         def _visualize(_map, _sum):
             _sum = int(float(_sum)/float(60))
             _count = 1
@@ -409,8 +409,27 @@ class Date():
                 _count += 1
             return m
 
+        def _cut_last_map(_map):
+            _new_map = []
+            _got_cut = False
+            for i in range(len(_map)):
+                _minute_state = _map[len(_map) -1 - i]
+                if _minute_state == 0 and not _got_cut:
+                    continue
+                else:
+                    _got_cut = True
+                _new_map.append(_minute_state)
+            _new_map = list(reversed(_new_map))
+            return _new_map
+
+        result = dict()
+        count = 0
         for h, d in map_dict.items():
-            result[h] = _visualize(d['map'], d['sum'])
+            count += 1
+            if count == len(map_dict): # last item
+                result[h] = _visualize(_cut_last_map(d['map']), d['sum'])
+            else:
+                result[h] = _visualize(d['map'], d['sum'])
         return result 
             
 
@@ -675,8 +694,8 @@ class Timer():
             hl_sum_visual = Date.visualize_map(hl_sum)
             for h in Date.hour_list(items[0][0], end_time):
                 cls.printer.add(h[9:]+': ', endl=False)
-                if h in hl_sum_visual:
-                    cls.printer.add(hl_sum_visual[h], '%.2f' % round(float(hl_sum[h]['sum'])/float(60), 2))
+                if h in hl_sum_visual and len(hl_sum_visual[h]):
+                    cls.printer.add(hl_sum_visual[h], '%.2f' % round(float(hl_sum[h]['sum'])/(float(len(hl_sum_visual[h])) / 10), 2))
                 else:
                     cls.printer.add(Colorama.print('░', 'red')*60, '00.00')
 
@@ -707,7 +726,6 @@ class Timer():
             cls.printer.add('*', 'Nap Time:   ', Date.format_delta((wt-work_time), with_check=False, blink=False, tomato_mode=True))
             cls.printer.add()
             DATE = datetime.datetime.strptime(_date, "%Y-%m-%d")
-            # cls.printer.add(Colorama._cal(DATE.year, DATE.month, DATE.day, indent=' '*23))
             cls.printer.add(*Colorama.color_title('Calendar', 'yellow', TABLE_WIDTH))
             cls.printer.add()
             cls.printer.add(Colorama._cal_month_expand(DATE.year, DATE.month, DATE.day, indent='  '))
@@ -724,7 +742,7 @@ if __name__ == "__main__":
     parser.add_argument('-dg', '--debug', dest='debug', action='store_true', help="debug code")
     parser.add_argument('-st', '--start', dest='start', action='store_true', help="start one day's work.")
     parser.add_argument('-sp', '--stop', dest='stop', action='store_true', help="stop one day's work.")
-    parser.add_argument('-nt', '--new_tomato', dest='new_tomato', action='store_true', help="start a new tomato.")
+    parser.add_argument('-nt', '--new_tomato', dest='new_tomato', action='store_true', help="start a new tomato period by pause and proceed.")
     parser.add_argument('-p', '--pause', dest='pause', action='store_true', help='pause work and have a nap.')
     parser.add_argument('-c', '--proceed', dest='proceed', action='store_true', help='proceed(continue) work and stop nap.')
     parser.add_argument('-ck', '--check', dest='check', action='store_true', help="check status of now's work.")
@@ -771,7 +789,7 @@ if __name__ == "__main__":
         printer.print()
 
     if parameters.debug:
-        pass
+        install() 
     if parameters.start:
         Timer.start()
     elif parameters.new_tomato:
