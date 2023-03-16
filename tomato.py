@@ -734,7 +734,7 @@ class Timer():
             cls.printer.print()
 
                     
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(description="""
             [  Tomato  Timer  ] -- author : shenjiawei
     """)
@@ -750,6 +750,8 @@ if __name__ == "__main__":
     parser.add_argument('-v', '--verbose', dest='verbose', action='store_true', help='show procedure verbose, use with --show command.')
     parser.add_argument('-d', '--date', dest='date', type=str, default=Date.today(), help='''choose specific date. 
         eg : 2021-01-01 or -1 for delta -1 day from today, use with --check, --show, --calendar command.''')
+    parser.add_argument('-dc', '--date_calculate', dest='date_calculate', type=str, default=Date.today(), help='''Calculate day offset. 
+        eg : 2021-01-01 to get interval from the date,  or -1 for delta -1 day from the date''')
     parser.add_argument('-r', '--records', dest='records', action='store_true', help='show workday records.')
     parser.add_argument('-cn', '--create_note', dest='create_note', action='store_true', help='create a note file of the day.')
     parser.add_argument('-cal', '--calendar', dest='calendar', action='store_true', help='show calendar of the day.')
@@ -781,6 +783,35 @@ if __name__ == "__main__":
     elif parameters.calendar:
         DATE = datetime.datetime.strptime(parameters.date, "%Y-%m-%d")
         printer.add(Colorama._cal(DATE.year, DATE.month, DATE.day), endl=True)
+        printer.print()
+        sys.exit(0) 
+    elif parameters.date_calculate is not None:
+        try:
+            parameters.date_calculate = int(parameters.date_calculate)
+        except:
+            pass
+
+        if isinstance(parameters.date_calculate, int):
+            _delta_days_for_calculate = int(parameters.date_calculate)
+            _date_for_calculate = datetime.datetime.strptime(parameters.date, "%Y-%m-%d") + datetime.timedelta(days=_delta_days_for_calculate)
+            date_calculate_for_print = Colorama.print(_date_for_calculate.strftime("%Y-%m-%d"), color='blue')
+            _delta_days_for_calculate_for_print = str(_delta_days_for_calculate)
+        else:
+            _delta_days = datetime.datetime.strptime(parameters.date_calculate, "%Y-%m-%d") - datetime.datetime.strptime(parameters.date, "%Y-%m-%d") 
+            _delta_days_for_calculate = _delta_days.days
+            date_calculate_for_print = parameters.date_calculate
+            _delta_days_for_calculate_for_print = Colorama.print(_delta_days.days, color='blue')
+
+        _delta_years = '%.2f' % round(float(_delta_days_for_calculate)/float(365), 2)
+        _delta_years = _delta_years.zfill(5)
+
+        msg = "* {_delta_days_for_calculate_for_print} days(about {_delta_years} years) between {date} ~ {date_calculate_for_print} ".format(_delta_days_for_calculate_for_print=_delta_days_for_calculate_for_print,
+                                                                                            _delta_years=_delta_years,
+                                                                                            date=parameters.date,
+                                                                                            date_calculate_for_print=date_calculate_for_print)
+
+        printer.add(*Colorama.color_title('Date Calculator', 'yellow', length=len(msg)))
+        printer.add(msg)
         printer.print()
         sys.exit(0) 
 
@@ -840,3 +871,6 @@ if __name__ == "__main__":
     else:
         print(Colorama.print('Use "python tomato.py -h" to get more information.', 'yellow'))
 
+
+if __name__ == "__main__":
+    main()
