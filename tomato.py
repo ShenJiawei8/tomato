@@ -751,7 +751,7 @@ def main():
     parser.add_argument('-d', '--date', dest='date', type=str, default=Date.today(), help='''choose specific date. 
         eg : 2021-01-01 or -1 for delta -1 day from today, must use with other commands.''')
     parser.add_argument('-dc', '--date_calculate', dest='date_calculate', type=str, default=None, help='''Calculate day offset. 
-        eg : 2021-01-01 to get interval from the date,  or -1 for delta -1 day from the date''')
+        eg : 2021-01-01 ("now" for today)to get interval from the date; -1 for delta -1 day from the date, ''')
     parser.add_argument('-r', '--records', dest='records', action='store_true', help='show workday records.')
     parser.add_argument('-cn', '--create_note', dest='create_note', action='store_true', help='create a note file of the day.')
     parser.add_argument('-cal', '--calendar', dest='calendar', action='store_true', help='show calendar of the day.')
@@ -797,6 +797,8 @@ def main():
             date_calculate_for_print = Colorama.print(_date_for_calculate.strftime("%Y-%m-%d"), color='blue')
             _delta_days_for_calculate_for_print = str(_delta_days_for_calculate)
         else:
+            if parameters.date_calculate == "now":
+                parameters.date_calculate = Date.today()
             _delta_days = datetime.datetime.strptime(parameters.date_calculate, "%Y-%m-%d") - datetime.datetime.strptime(parameters.date, "%Y-%m-%d") 
             _delta_days_for_calculate = _delta_days.days
             date_calculate_for_print = parameters.date_calculate
