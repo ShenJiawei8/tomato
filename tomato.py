@@ -749,7 +749,7 @@ def main():
     parser.add_argument('-s', '--show', dest='show', action='store_true', help='show work procedure of the day.')
     parser.add_argument('-v', '--verbose', dest='verbose', action='store_true', help='show procedure verbose, use with --show command.')
     parser.add_argument('-d', '--date', dest='date', type=str, default=Date.today(), help='''choose specific date. 
-        eg : 2021-01-01 or -1 for delta -1 day from today, use with --check, --show, --calendar command.''')
+        eg : 2021-01-01 or -1 for delta -1 day from today, must use with other commands.''')
     parser.add_argument('-dc', '--date_calculate', dest='date_calculate', type=str, default=None, help='''Calculate day offset. 
         eg : 2021-01-01 to get interval from the date,  or -1 for delta -1 day from the date''')
     parser.add_argument('-r', '--records', dest='records', action='store_true', help='show workday records.')
