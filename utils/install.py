@@ -1,20 +1,9 @@
 #coding=utf-8
 #Author: shenjiawei
 
-import json
-from subprocess import call, check_output
+
 import os, errno
-import sys
-import re
-import datetime
-import time
-import argparse
-import math
-import subprocess
-import calendar
-import pty
-from pprint import pprint
-from utils.user_info import get_user_name, get_user_id
+from utils.user_info import get_user_name
 from utils.init_template import install_files
 
 def _install_file(path, file_name, file_content):
