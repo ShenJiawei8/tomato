@@ -236,13 +236,10 @@ class Colorama(object):
                 'Su', 'blue') + suf
         cal = re.sub('^', indent, cal)
         cal = re.sub('\n', '\n' + indent, cal)
-        # return cal.rstrip()
         return cal
 
     @classmethod
     def _cal_month_expand(cls, year, month, day, indent='', expand=0):
-        date_obj = datetime.datetime.strptime("{year}-{month}-{day}".format(year=year, month=month, day=day),
-                                              "%Y-%m-%d")
         date_month_first_day_obj = datetime.datetime.strptime("{year}-{month}-01".format(year=year, month=month),
                                                               "%Y-%m-%d")
         month_next = date_month_first_day_obj + datetime.timedelta(days=32)
@@ -348,7 +345,7 @@ class Date():
                                           blink=False) if nap_notice is True else '')
 
     @classmethod
-    def _format_delta(cls, delta, only_positive=False):
+    def _format_delta(cls, delta):
         hour = '%02d' % int(delta / 3600)
         minute = '%02d' % (int((delta % 3600) / 60) if delta >= 0 else int((delta % 3600 - 3600) / 60))
         second = '%02d' % (int(delta % 60) if delta >= 0 else int(delta % 60 - 60))
@@ -560,8 +557,6 @@ class Timer():
             index = len(items) - 1 - i
             if len(items[index]) != 2:
                 got_pauser_point = True
-                pause_time = Date.now(delta)
-                pause_time = pause_time if pause_time >= items[index][0] else items[index][0]
                 items[index].append(Date.now(delta))
                 break
 
@@ -633,8 +628,6 @@ class Timer():
             items = json.loads(fin.read())
 
             work_time = 0
-
-            start_time = items[0][0]
 
             for item in items:
                 if len(item) == 2:
@@ -857,9 +850,13 @@ def main():
     if Timer.last_file_name is None:
         printer.add("Today's work is not started.")
         printer.print()
+        sys.exit(0)
 
     if parameters.debug:
-        install()
+        pass
+        # install()
+        sys.exit(0)
+
     if parameters.start:
         Timer.start()
     elif parameters.new_tomato:

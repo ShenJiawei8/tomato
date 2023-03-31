@@ -1,6 +1,5 @@
 import os
 
-
 '''
 Use conmmand to get users info:
 command
@@ -15,6 +14,7 @@ output :
     shell: /bin/zsh
     gecos: jiawei
 '''
+
 
 def get_user_infos(user_name):
     user_infos = []
@@ -33,11 +33,11 @@ def get_all_users():
         if not user.strip():
             continue
         _user_dict_items = user.split('\n')
-        _user_dict = {item.split(':')[0].strip():item.split(':')[1].strip() for item in _user_dict_items}
+        _user_dict = {item.split(':')[0].strip(): item.split(':')[1].strip() for item in _user_dict_items}
         users.append(_user_dict)
     return users
 
-        
+
 def get_user_id(user_name=''):
     user_id = os.popen('id -u {user_name}'.format(user_name=user_name)).read()
     return user_id.strip()

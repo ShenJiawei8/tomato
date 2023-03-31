@@ -1,10 +1,11 @@
-#coding=utf-8
-#Author: shenjiawei
+# coding=utf-8
+# Author: shenjiawei
 
 
 import os, errno
 from utils.user_info import get_user_name
 from utils.init_template import install_files
+
 
 def _install_file(path, file_name, file_content):
     with open(os.path.join(path, file_name), 'w') as fout:
@@ -35,7 +36,7 @@ def install(user_name=None):
         name = f['name'].format(user_name=user_name)
         content = f['content'].format(user_name=user_name)
         _install_file(bin_path, name, content)
-    return 
+    return
 
 
 if __name__ == "__main__":

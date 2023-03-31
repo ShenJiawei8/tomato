@@ -1,4 +1,3 @@
-
 file_content_plist = """<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -17,7 +16,6 @@ file_content_plist = """<?xml version="1.0" encoding="UTF-8"?>
     <string>staff</string>
 </dict>
 </plist>"""
-
 
 file_content_config = """config#coding=utf-8
 nap_seconds = 300 # 5min
@@ -62,4 +60,3 @@ install_files = [
         "content": file_content_run,
     }
 ]
-
