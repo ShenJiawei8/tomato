@@ -274,7 +274,7 @@ class Colorama(object):
             date_calculate_for_print = Colorama.print(_date_for_calculate.strftime("%Y-%m-%d"), color='blue')
             _delta_days_for_calculate_for_print = str(_delta_days_for_calculate)
         else:
-            if date_calculate == "now":
+            if date_calculate is None or date_calculate == "now":
                 date_calculate = Date.today()
             _delta_days = datetime.datetime.strptime(date_calculate, "%Y-%m-%d") - datetime.datetime.strptime(date,
                                                                                                               "%Y-%m-%d")
@@ -771,6 +771,10 @@ class Timer():
             cls.printer.add('*', 'Nap Time:   ',
                             Date.format_delta((wt - work_time), with_check=False, blink=False, tomato_mode=True))
             cls.printer.add()
+            note_path = get_note_path(_date)
+            note_info = note_path if os.path.exists(note_path) else "note file is not created."
+            cls.printer.add('* Note: {note_path}'.format(note_path=note_info))
+            cls.printer.add()
             DATE = datetime.datetime.strptime(_date, "%Y-%m-%d")
             cls.printer.add(*Colorama.color_title('Calendar', 'yellow', TABLE_WIDTH))
             cls.printer.add()
@@ -834,7 +838,11 @@ def main():
         sys.exit(0)
     elif parameters.calendar:
         DATE = datetime.datetime.strptime(parameters.date, "%Y-%m-%d")
-        printer.add(Colorama._cal(DATE.year, DATE.month, DATE.day), endl=True)
+        printer.print()
+        if parameters.verbose:
+            printer.add(Colorama._cal_month_expand(DATE.year, DATE.month, DATE.day), endl=False)
+        else:
+            printer.add(Colorama._cal(DATE.year, DATE.month, DATE.day), endl=False)
         printer.print()
         sys.exit(0)
     elif parameters.date_calculate:
