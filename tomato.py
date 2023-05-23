@@ -125,7 +125,6 @@ def create_daily_note(date, printer=None):
 
 {date}'s work started, have a nice day ~
 {last_todo}
-
         # TODAY:
             [ ] 
 
@@ -731,7 +730,6 @@ class Timer():
             for h in Date.hour_list(items[0][0], end_time):
                 cls.printer.add(h[9:] + ': ', endl=False)
                 if h in hl_sum_visual and len(hl_sum_visual[h]):
-                    print(hl_sum[h]['sum'])
                     cls.printer.add(hl_sum_visual[h],
                                     '%.2f' % round(float(hl_sum[h]['sum']) / 60, 2))
                 else:
