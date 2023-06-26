@@ -11,6 +11,7 @@ import time
 import argparse
 import math
 import calendar
+import shutil
 from bin.config import nap_seconds, auto_cut_cross_day, \
     auto_cut_cross_day_interval_hours, work_time_target_hours_one_day, \
     daily_work_note_dir, target_nap_rate, copy_daily_work_note_symlink, \
@@ -33,7 +34,7 @@ class PrintCache():
         self.cache += output
 
     def get_cache(self):
-        return cache
+        return self.cache
 
     def clear_cache(self):
         self.cache = ''
@@ -147,6 +148,27 @@ def create_daily_note(date, printer=None):
         update_symlink(note_path, symlink)
         if len(user_infos):
             chown_to_user(symlink, user_infos[0])
+
+
+def archive_notes(save_count=10, archive_path=""):
+    archive_list = []
+    if not archive_path:
+        return archive_list
+    for f in os.listdir(daily_work_note_dir):
+        f_path = os.path.join(daily_work_note_dir, f)
+        f_symlink_path = os.path.join(copy_daily_work_note_symlink, f)
+        if os.path.isfile(f_path) and f.endswith('.md'):
+            _date = f.split('.')[0]
+            if Date.delta(_date, Date.today(), seconds=False) >= save_count:
+                f_archive_path = os.path.join(archive_path, f)
+                shutil.move(f_path, f_archive_path)
+                os.remove(f_symlink_path)
+                archive_list.append({
+                    'mv_note_path': f_path,
+                    'archive_to_path': f_archive_path,
+                    'rm_symlink': f_symlink_path
+                })
+    return archive_list
 
 
 def output_tomato_record_to_note(date):
@@ -316,10 +338,16 @@ class Date():
         return now.strftime("%Y-%m-%d")
 
     @classmethod
-    def delta(cls, d1, d2):
-        d1 = datetime.datetime.strptime(d1, "%Y-%m-%d %H:%M:%S")
-        d2 = datetime.datetime.strptime(d2, "%Y-%m-%d %H:%M:%S")
-        return (d2 - d1).seconds + (d2 - d1).days * 86400
+    def delta(cls, d1, d2, seconds=True):
+        if seconds:
+            d1 = datetime.datetime.strptime(d1, "%Y-%m-%d %H:%M:%S")
+            d2 = datetime.datetime.strptime(d2, "%Y-%m-%d %H:%M:%S")
+        else:
+            d1 = datetime.datetime.strptime(d1, "%Y-%m-%d")
+            d2 = datetime.datetime.strptime(d2, "%Y-%m-%d")
+        _seconds = (d2 - d1).seconds
+        _days = (d2 - d1).days
+        return _seconds + _days * 86400 if seconds else _days
 
     @classmethod
     def diff_month(cls, d1, d2):
@@ -813,6 +841,10 @@ def main():
     parser.add_argument('-r', '--records', dest='records', action='store_true', help='show workday records.')
     parser.add_argument('-cn', '--create_note', dest='create_note', action='store_true',
                         help='create a note file of the day.')
+    parser.add_argument('-an', '--archive_note', dest='archive_note', action='store_true',
+                        help='archive_note note files of the days.')
+    parser.add_argument('-anc', '--archive_note_count', dest='archive_note_count', type=int, default=None, help=''' archive_note note files counts ''')
+    parser.add_argument('-anp', '--archive_note_path', dest='archive_note_path', type=str, default=None, help=''' archive_note note files to the path ''')
     parser.add_argument('-cal', '--calendar', dest='calendar', action='store_true', help='show calendar of the day.')
     parser.add_argument('-clk', '--clock', dest='clock', action='store_true', help='run an Auto Tomato clock.')
     parser.add_argument('-bw', '--black_and_white', dest='black_and_white', action='store_true',
@@ -841,6 +873,12 @@ def main():
     if parameters.create_note:
         create_daily_note(parameters.date, printer=printer)
         sys.exit(0)
+
+    if parameters.archive_note:
+        archive_list = archive_notes(save_count=parameters.archive_note_count, archive_path=parameters.archive_note_path)
+        printer.add(json.dumps(archive_list, indent=4))
+        printer.print()
+
     elif parameters.calendar:
         DATE = datetime.datetime.strptime(parameters.date, "%Y-%m-%d")
         printer.print()
@@ -850,6 +888,7 @@ def main():
             printer.add(Colorama._cal(DATE.year, DATE.month, DATE.day), endl=False)
         printer.print()
         sys.exit(0)
+
     elif parameters.date_calculate:
         try:
             parameters.date_calculate = int(parameters.date_calculate)
@@ -867,7 +906,6 @@ def main():
         sys.exit(0)
 
     if parameters.debug:
-        pass
         # install()
         sys.exit(0)
 
