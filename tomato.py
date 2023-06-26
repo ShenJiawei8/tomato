@@ -875,9 +875,13 @@ def main():
         sys.exit(0)
 
     if parameters.archive_note:
-        archive_list = archive_notes(save_count=parameters.archive_note_count, archive_path=parameters.archive_note_path)
-        printer.add(json.dumps(archive_list, indent=4))
+        if parameters.archive_note_path and parameters.archive_note_count:
+            archive_list = archive_notes(save_count=parameters.archive_note_count, archive_path=parameters.archive_note_path)
+            printer.add(json.dumps(archive_list, indent=4))
+        else:
+            printer.add('archive_note_path or archive_note_count is invalid !')
         printer.print()
+        sys.exit(0)
 
     elif parameters.calendar:
         DATE = datetime.datetime.strptime(parameters.date, "%Y-%m-%d")
