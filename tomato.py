@@ -272,6 +272,7 @@ class Colorama(object):
                 days=_delta_days_for_calculate)
             date_calculate_for_print = Colorama.print(_date_for_calculate.strftime("%Y-%m-%d"), color='blue')
             _delta_days_for_calculate_for_print = str(_delta_days_for_calculate)
+            _delta_months = Date.diff_month(datetime.datetime.strptime(date, "%Y-%m-%d"), _date_for_calculate)
         else:
             if date_calculate is None or date_calculate == "now":
                 date_calculate = Date.today()
@@ -280,13 +281,15 @@ class Colorama(object):
             _delta_days_for_calculate = _delta_days.days
             date_calculate_for_print = date_calculate
             _delta_days_for_calculate_for_print = Colorama.print(_delta_days.days, color='blue')
+            _delta_months = Date.diff_month(datetime.datetime.strptime(date, "%Y-%m-%d"), datetime.datetime.strptime(date_calculate, "%Y-%m-%d"))
 
         _delta_years = '%.2f' % round(float(_delta_days_for_calculate) / float(365), 2)
         _delta_years = _delta_years.zfill(5)
 
-        return "* {_delta_days_for_calculate_for_print} days(about {_delta_years} years) between {date} ~ {date_calculate_for_print} ". \
+        return "* {_delta_days_for_calculate_for_print} days ({_delta_years} years, {_delta_months} months) between {date} ~ {date_calculate_for_print} ". \
             format(_delta_days_for_calculate_for_print=_delta_days_for_calculate_for_print,
                    _delta_years=_delta_years,
+                   _delta_months=_delta_months,
                    date=date,
                    date_calculate_for_print=date_calculate_for_print)
 
@@ -317,6 +320,10 @@ class Date():
         d1 = datetime.datetime.strptime(d1, "%Y-%m-%d %H:%M:%S")
         d2 = datetime.datetime.strptime(d2, "%Y-%m-%d %H:%M:%S")
         return (d2 - d1).seconds + (d2 - d1).days * 86400
+
+    @classmethod
+    def diff_month(cls, d1, d2):
+        return (d2.year - d1.year) * 12 + d2.month - d1.month
 
     @classmethod
     def format_delta(cls, delta, tomato_mode=True, with_check=False, blink=False, nap_notice=False):
