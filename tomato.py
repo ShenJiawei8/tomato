@@ -805,7 +805,7 @@ class Timer():
                             Date.format_delta((wt - work_time), with_check=False, blink=False, tomato_mode=True))
             cls.printer.add()
             note_path = get_note_path(_date)
-            note_info = note_path if os.path.exists(note_path) else "note file is not created."
+            note_info = note_path if os.path.exists(note_path) else "note file is not exist."
             cls.printer.add('* Note: {note_path}'.format(note_path=note_info))
             cls.printer.add()
             DATE = datetime.datetime.strptime(_date, "%Y-%m-%d")
