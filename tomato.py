@@ -816,72 +816,23 @@ class Timer():
             cls.printer.add(*Colorama.color_title('Tomato Timer :  NowTime: ' + Date.now(), 'yellow', TABLE_WIDTH))
             cls.printer.print()
 
-
-def main():
-    parser = argparse.ArgumentParser(description="""
-            [  Tomato  Timer  ] -- author : shenjiawei
-    """)
-
-    parser.add_argument('-dg', '--debug', dest='debug', action='store_true', help="debug code")
-    parser.add_argument('-st', '--start', dest='start', action='store_true', help="start one day's work.")
-    parser.add_argument('-sp', '--stop', dest='stop', action='store_true', help="stop one day's work.")
-    parser.add_argument('-nt', '--new_tomato', dest='new_tomato', action='store_true',
-                        help="start a new tomato period by pause and proceed.")
-    parser.add_argument('-p', '--pause', dest='pause', action='store_true', help='pause work and have a nap.')
-    parser.add_argument('-c', '--proceed', dest='proceed', action='store_true',
-                        help='proceed(continue) work and stop nap.')
-    parser.add_argument('-ck', '--check', dest='check', action='store_true', help="check status of now's work.")
-    parser.add_argument('-s', '--show', dest='show', action='store_true', help='show work procedure of the day.')
-    parser.add_argument('-v', '--verbose', dest='verbose', action='store_true',
-                        help='show procedure verbose, use with --show command.')
-    parser.add_argument('-d', '--date', dest='date', type=str, default=Date.today(), help='''choose specific date. 
-        eg : 2021-01-01 or -1 for delta -1 day from today, must use with other commands.''')
-    parser.add_argument('-dc', '--date_calculate', dest='date_calculate', type=str, default=None, help='''Calculate day offset. 
-        eg : 2021-01-01 ("now" for today)to get interval from the date; -1 for delta -1 day from the date, ''')
-    parser.add_argument('-r', '--records', dest='records', action='store_true', help='show workday records.')
-    parser.add_argument('-cn', '--create_note', dest='create_note', action='store_true',
-                        help='create a note file of the day.')
-    parser.add_argument('-an', '--archive_note', dest='archive_note', action='store_true',
-                        help='archive_note note files of the days.')
-    parser.add_argument('-anc', '--archive_note_count', dest='archive_note_count', type=int, default=None, help=''' archive_note note files counts ''')
-    parser.add_argument('-anp', '--archive_note_path', dest='archive_note_path', type=str, default=None, help=''' archive_note note files to the path ''')
-    parser.add_argument('-cal', '--calendar', dest='calendar', action='store_true', help='show calendar of the day.')
-    parser.add_argument('-clk', '--clock', dest='clock', action='store_true', help='run an Auto Tomato clock.')
-    parser.add_argument('-bw', '--black_and_white', dest='black_and_white', action='store_true',
-                        help='print with black and white.')
-    parser.add_argument('-pf', '--print_to_file', dest='print_to_file', type=str, default=None,
-                        help='print output to the local file')
-
-    parameters = parser.parse_args()
-
-    printer = PrintCache(local_file=parameters.print_to_file)
-    Timer.init(printer)
-
-    if parameters.print_to_file is None and parameters.black_and_white is False:
-        Colorama.with_color = True
-
-    try:
-        parameters.date = int(parameters.date)
-    except:
-        pass
-
-    if parameters.date is not None and isinstance(parameters.date, int):
-        _delta_days = int(parameters.date)
-        _date = datetime.datetime.strptime(Date.today(), "%Y-%m-%d") + datetime.timedelta(days=_delta_days)
-        parameters.date = _date.strftime("%Y-%m-%d")
+def addtional_functions(parameters, printer):
+    # Addtional Functions
+    if parameters.debug:
+        return True
 
     if parameters.create_note:
         create_daily_note(parameters.date, printer=printer)
-        sys.exit(0)
+        return True
 
-    if parameters.archive_note:
+    elif parameters.archive_note:
         if parameters.archive_note_path and parameters.archive_note_count:
             archive_list = archive_notes(save_count=parameters.archive_note_count, archive_path=parameters.archive_note_path)
             printer.add(json.dumps(archive_list, indent=4))
         else:
             printer.add('archive_note_path or archive_note_count is invalid !')
         printer.print()
-        sys.exit(0)
+        return True
 
     elif parameters.calendar:
         DATE = datetime.datetime.strptime(parameters.date, "%Y-%m-%d")
@@ -891,7 +842,7 @@ def main():
         else:
             printer.add(Colorama._cal(DATE.year, DATE.month, DATE.day), endl=False)
         printer.print()
-        sys.exit(0)
+        return True
 
     elif parameters.date_calculate:
         try:
@@ -902,16 +853,18 @@ def main():
         printer.add(*Colorama.color_title('Date Calculator', 'yellow', length=len(msg)))
         printer.add(msg)
         printer.print()
-        sys.exit(0)
+        return True
 
+    return False
+
+
+def clock_functions(parameters, printer):
+    # Tomato Clock Functions
+    Timer.init(printer)
     if Timer.last_file_name is None:
         printer.add("Today's work is not started.")
         printer.print()
-        sys.exit(0)
-
-    if parameters.debug:
-        # install()
-        sys.exit(0)
+        return
 
     if parameters.start:
         Timer.start()
@@ -953,7 +906,7 @@ def main():
                 elif idle_time > nap_seconds:
                     print('*', Date.now(), ': Status auto change to Paused')
                     Timer.pause(datetime.timedelta(seconds=-idle_time))
-                # elif 
+                # elif
 
             except KeyboardInterrupt:
                 printer.add()
@@ -964,5 +917,63 @@ def main():
         print(Colorama.print('Use "python tomato.py -h" to get more information.', 'yellow'))
 
 
+def get_input_parameters():
+    parser = argparse.ArgumentParser(description="""
+            [  Tomato  Timer  ] -- author : shenjiawei
+    """)
+
+    parser.add_argument('-dg', '--debug', dest='debug', action='store_true', help="debug code")
+    parser.add_argument('-st', '--start', dest='start', action='store_true', help="start one day's work.")
+    parser.add_argument('-sp', '--stop', dest='stop', action='store_true', help="stop one day's work.")
+    parser.add_argument('-nt', '--new_tomato', dest='new_tomato', action='store_true',
+                        help="start a new tomato period by pause and proceed.")
+    parser.add_argument('-p', '--pause', dest='pause', action='store_true', help='pause work and have a nap.')
+    parser.add_argument('-c', '--proceed', dest='proceed', action='store_true',
+                        help='proceed(continue) work and stop nap.')
+    parser.add_argument('-ck', '--check', dest='check', action='store_true', help="check status of now's work.")
+    parser.add_argument('-s', '--show', dest='show', action='store_true', help='show work procedure of the day.')
+    parser.add_argument('-v', '--verbose', dest='verbose', action='store_true',
+                        help='show procedure verbose, use with --show command.')
+    parser.add_argument('-d', '--date', dest='date', type=str, default=Date.today(), help='''choose specific date. 
+        eg : 2021-01-01 or -1 for delta -1 day from today, must use with other commands.''')
+    parser.add_argument('-dc', '--date_calculate', dest='date_calculate', type=str, default=None, help='''Calculate day offset. 
+        eg : 2021-01-01 ("now" for today)to get interval from the date; -1 for delta -1 day from the date, ''')
+    parser.add_argument('-r', '--records', dest='records', action='store_true', help='show workday records.')
+    parser.add_argument('-cn', '--create_note', dest='create_note', action='store_true',
+                        help='create a note file of the day.')
+    parser.add_argument('-an', '--archive_note', dest='archive_note', action='store_true',
+                        help='archive_note note files of the days.')
+    parser.add_argument('-anc', '--archive_note_count', dest='archive_note_count', type=int, default=None, help=''' archive_note note files counts ''')
+    parser.add_argument('-anp', '--archive_note_path', dest='archive_note_path', type=str, default=None, help=''' archive_note note files to the path ''')
+    parser.add_argument('-cal', '--calendar', dest='calendar', action='store_true', help='show calendar of the day.')
+    parser.add_argument('-clk', '--clock', dest='clock', action='store_true', help='run an Auto Tomato clock.')
+    parser.add_argument('-bw', '--black_and_white', dest='black_and_white', action='store_true',
+                        help='print with black and white.')
+    parser.add_argument('-pf', '--print_to_file', dest='print_to_file', type=str, default=None,
+                        help='print output to the local file')
+
+    parameters = parser.parse_args()
+
+    if parameters.print_to_file is None and parameters.black_and_white is False:
+        Colorama.with_color = True
+
+    try:
+        parameters.date = int(parameters.date)
+    except:
+        pass
+
+    if parameters.date is not None and isinstance(parameters.date, int):
+        _delta_days = int(parameters.date)
+        _date = datetime.datetime.strptime(Date.today(), "%Y-%m-%d") + datetime.timedelta(days=_delta_days)
+        parameters.date = _date.strftime("%Y-%m-%d")
+
+    return parameters
+
+
 if __name__ == "__main__":
-    main()
+    parameters = get_input_parameters()
+    printer = PrintCache(local_file=parameters.print_to_file)
+    if addtional_functions(parameters, printer):
+        pass
+    else:
+        clock_functions(parameters, printer)
