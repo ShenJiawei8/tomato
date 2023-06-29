@@ -83,6 +83,27 @@ def get_note_link_path(date):
 
 
 def create_daily_note(date, printer=None):
+    def _simplify_today_work(work_lines):
+        before_block = []
+        today_block = []
+        today_line = None
+        in_today_block = False
+        for l in work_lines:
+            if "# TODAY:" in l:
+                in_today_block = True
+                today_line = l
+                continue
+            if in_today_block:
+                if l.strip() == "[ ]" or len(l.strip()) == 0:
+                    continue
+                else:
+                    today_block.append(l)
+
+            else:
+                before_block.append(l)
+
+        return before_block + [today_line] + today_block if len(today_block) else before_block
+
     note_path = get_note_path(date)
     DATE = datetime.datetime.strptime(date, "%Y-%m-%d")
 
@@ -112,8 +133,10 @@ def create_daily_note(date, printer=None):
                             _last_todo_list.append(line)
                             continue
                         break
+                _last_todo_list = _simplify_today_work(_last_todo_list)
                 last_todo = ''.join(_last_todo_list)
                 last_todo = re.sub('# TODAY', '# ' + last_day, last_todo)
+                last_todo = last_todo.rstrip()
                 break
         else:
             if printer:
@@ -126,6 +149,7 @@ def create_daily_note(date, printer=None):
 
 {date}'s work started, have a nice day ~
 {last_todo}
+
         # TODAY:
             [ ] 
 
