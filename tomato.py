@@ -15,7 +15,7 @@ import shutil
 from bin.config import nap_seconds, auto_cut_cross_day, \
     auto_cut_cross_day_interval_hours, work_time_target_hours_one_day, \
     daily_work_note_dir, target_nap_rate, copy_daily_work_note_symlink, \
-    user_name, daily_work_time_records_dir, use_notice
+    user_name, daily_work_time_records_dir, use_notice, note_archive_count, note_archive_path
 from utils.user_info import get_user_infos
 from utils.install import install
 
@@ -195,10 +195,6 @@ def archive_notes(save_count=10, archive_path=""):
     return archive_list
 
 
-def output_tomato_record_to_note(date):
-    pass
-
-
 class Colorama(object):
     with_color = False
 
@@ -327,7 +323,8 @@ class Colorama(object):
             _delta_days_for_calculate = _delta_days.days
             date_calculate_for_print = date_calculate
             _delta_days_for_calculate_for_print = Colorama.print(_delta_days.days, color='blue')
-            _delta_months = Date.diff_month(datetime.datetime.strptime(date, "%Y-%m-%d"), datetime.datetime.strptime(date_calculate, "%Y-%m-%d"))
+            _delta_months = Date.diff_month(datetime.datetime.strptime(date, "%Y-%m-%d"),
+                                            datetime.datetime.strptime(date_calculate, "%Y-%m-%d"))
 
         _delta_years = '%.2f' % round(float(_delta_days_for_calculate) / float(365), 2)
         _delta_years = _delta_years.zfill(5)
@@ -392,7 +389,7 @@ class Date():
                 minute=minute,
                 tomato=tomato,
                 finish=tomato_icon if float(tomato) >= 1 and with_check else '    ',
-                nap_notice=Colorama.print('\n [Good job! You need a nap now to relax your eyes ~ ]', 'yellow',
+                nap_notice=Colorama.print('\n [ You need a nap now to relax your eyes ~ ]', 'yellow',
                                           blink=False) if nap_notice and float(tomato) >= 1 else '')
         else:
             return "{hour}:{minute} {enough_break}{nap_notice}".format(
@@ -540,6 +537,7 @@ class Timer():
             cls.printer = printer
         update_symlink(cls.last_file_name, cls.today_symlink)
         create_daily_note(cls.last_file_name.split('/')[-1])
+        archive_notes(save_count=note_archive_count, archive_path=note_archive_path)
 
     @classmethod
     def get_file_name(cls):
@@ -840,6 +838,7 @@ class Timer():
             cls.printer.add(*Colorama.color_title('Tomato Timer :  NowTime: ' + Date.now(), 'yellow', TABLE_WIDTH))
             cls.printer.print()
 
+
 def addtional_functions(parameters, printer):
     # Addtional Functions
     if parameters.debug:
@@ -851,7 +850,8 @@ def addtional_functions(parameters, printer):
 
     elif parameters.archive_note:
         if parameters.archive_note_path and parameters.archive_note_count:
-            archive_list = archive_notes(save_count=parameters.archive_note_count, archive_path=parameters.archive_note_path)
+            archive_list = archive_notes(save_count=parameters.archive_note_count,
+                                         archive_path=parameters.archive_note_path)
             printer.add(json.dumps(archive_list, indent=4))
         else:
             printer.add('archive_note_path or archive_note_count is invalid !')
@@ -967,8 +967,10 @@ def get_input_parameters():
                         help='create a note file of the day.')
     parser.add_argument('-an', '--archive_note', dest='archive_note', action='store_true',
                         help='archive_note note files of the days.')
-    parser.add_argument('-anc', '--archive_note_count', dest='archive_note_count', type=int, default=None, help=''' archive_note note files counts ''')
-    parser.add_argument('-anp', '--archive_note_path', dest='archive_note_path', type=str, default=None, help=''' archive_note note files to the path ''')
+    parser.add_argument('-anc', '--archive_note_count', dest='archive_note_count', type=int, default=None,
+                        help=''' archive_note note files counts ''')
+    parser.add_argument('-anp', '--archive_note_path', dest='archive_note_path', type=str, default=None,
+                        help=''' archive_note note files to the path ''')
     parser.add_argument('-cal', '--calendar', dest='calendar', action='store_true', help='show calendar of the day.')
     parser.add_argument('-clk', '--clock', dest='clock', action='store_true', help='run an Auto Tomato clock.')
     parser.add_argument('-bw', '--black_and_white', dest='black_and_white', action='store_true',
