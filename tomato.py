@@ -21,7 +21,6 @@ from utils.install import install
 
 TABLE_WIDTH = 70
 
-
 class PrintCache():
     def __init__(self, local_file=None):
         self.cache = ''
