@@ -47,12 +47,13 @@ class PrintCache():
         self.clear_cache()
 
 
-def notice(content):
+def notice(content, subtitle=""):
     if use_notice:
-        title = "Tomato Work Timer"
-        cmd = '''display notification "{content}"  with title "{title}" '''.format(
+        title = "Tomato Timer"
+        cmd = '''display notification "{content}"  with title "{title}" subtitle "{subtitle}" '''.format(
             content=content,
-            title=title
+            title=title,
+            subtitle=subtitle
         )
         call(["osascript", "-e", cmd])
 
@@ -619,10 +620,10 @@ class Timer():
             with open(cls.last_file_name, 'w') as fout:
                 fout.write(json.dumps(items, indent=4))
                 msg = "{last_day}'s work paused... ".format(last_day=cls.last_day)
-                notice(msg)
+                notice(msg, "Action: Pause work")
                 cls.printer.add(msg)
         else:
-            cls.printer.add('already paused')
+            cls.printer.add('Already paused')
 
         cls.printer.print()
 
@@ -641,8 +642,8 @@ class Timer():
         cls.auto_cut_cross_day()
 
         if not cls.is_paused():
-            msg = "already in working status.".format(last_day=cls.last_day)
-            notice(msg)
+            msg = "Already in working status.".format(last_day=cls.last_day)
+            notice(msg, "Action: Proceed work")
             cls.printer.add(msg)
             return
 
@@ -653,7 +654,7 @@ class Timer():
             items.append([Date.now()])
             fout.write(json.dumps(items, indent=4))
             msg = "proceed {last_day}'s work ...".format(last_day=cls.last_day)
-            notice(msg)
+            notice(msg, "Action: Proceed work")
             cls.printer.add(msg)
 
         cls.printer.print()
@@ -701,7 +702,7 @@ class Timer():
                 msg = '*' + " Work Status: " + "paused"
                 cls.printer.add(msg)
 
-            notice(msg)
+            notice(msg, "Action: Check work status")
         cls.printer.print()
 
     @classmethod
