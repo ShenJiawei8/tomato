@@ -280,18 +280,36 @@ class Colorama(object):
         return cal
 
     @classmethod
-    def _cal_month_expand(cls, year, month, day, indent='', expand=0):
-        date_month_first_day_obj = datetime.datetime.strptime("{year}-{month}-01".format(year=year, month=month),
-                                                              "%Y-%m-%d")
-        month_next = date_month_first_day_obj + datetime.timedelta(days=32)
-        month_before = date_month_first_day_obj + datetime.timedelta(days=-1)
-        cal = cls._cal(year, month, day, indent='', expand=expand, for_note=True, highlight=True)
-        cal_next = cls._cal(month_next.year, month_next.month, month_next.day, indent='', expand=expand, for_note=True,
-                            highlight=False)
-        cal_before = cls._cal(month_before.year, month_before.month, month_before.day, indent='', expand=expand,
-                              for_note=True, highlight=False)
+    def _cal_month_expand(cls, year, month, day, indent='', expand=0, quarter=False):
+        def _get_quarter_months(month):
+            month = int(month)
+            quarter = (month + 2) / 3
+            quarter_first_month = (quarter -1) * 3 + 1
+            return int(quarter_first_month), int(quarter_first_month+ 1), int(quarter_first_month+ 2)
+
+
+        if quarter:
+            month_0, month_1, month_2 = _get_quarter_months(month)
+            year_0 = year_1 = year_2 = year
+        else:
+            date_month_first_day_obj = datetime.datetime.strptime("{year}-{month}-01".format(year=year, month=month),
+                                                                  "%Y-%m-%d")
+            month_obj_0 = date_month_first_day_obj + datetime.timedelta(days=-1)
+            month_obj_2 = date_month_first_day_obj + datetime.timedelta(days=32)
+            month_0 = month_obj_0.month
+            month_2 = month_obj_2.month
+            year_0 = month_obj_0.year
+            year_2 = month_obj_2.year
+
+            year_1 = year
+            month_1 = month
+
+        cal_0 = cls._cal(year_0, month_0, 1 if month != month_0 else day, indent='', expand=expand, for_note=True, highlight=False if month != month_0 else True)
+        cal_1 = cls._cal(year_1, month_1, 1 if month != month_1 else day, indent='', expand=expand, for_note=True, highlight=False if month != month_1 else True)
+        cal_2 = cls._cal(year_2, month_2, 1 if month != month_2 else day, indent='', expand=expand, for_note=True, highlight=False if month != month_2 else True)
+
         cal_expand_lines = []
-        for lines in zip(cal_before.split('\n'), cal.split('\n'), cal_next.split('\n')):
+        for lines in zip(cal_0.split('\n'), cal_1.split('\n'), cal_2.split('\n')):
             _lines = []
             for line in lines:
                 if len(line) < 20:
@@ -833,7 +851,7 @@ class Timer():
             DATE = datetime.datetime.strptime(_date, "%Y-%m-%d")
             cls.printer.add(*Colorama.color_title('Calendar', 'yellow', TABLE_WIDTH))
             cls.printer.add()
-            cls.printer.add(Colorama._cal_month_expand(DATE.year, DATE.month, DATE.day, indent='  '))
+            cls.printer.add(Colorama._cal_month_expand(DATE.year, DATE.month, DATE.day, indent='  ', quarter=True))
             cls.printer.add()
             cls.printer.add(*Colorama.color_title('Tomato Timer :  NowTime: ' + Date.now(), 'yellow', TABLE_WIDTH))
             cls.printer.print()
