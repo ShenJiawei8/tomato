@@ -283,10 +283,9 @@ class Colorama(object):
     def _cal_month_expand(cls, year, month, day, indent='', expand=0, quarter=False):
         def _get_quarter_months(month):
             month = int(month)
-            quarter = (month + 2) / 3
+            quarter = int((month + 2) / 3)
             quarter_first_month = (quarter -1) * 3 + 1
             return int(quarter_first_month), int(quarter_first_month+ 1), int(quarter_first_month+ 2)
-
 
         if quarter:
             month_0, month_1, month_2 = _get_quarter_months(month)
@@ -956,7 +955,8 @@ def clock_functions(parameters, printer):
                 Timer.show(parameters.date, parameters.verbose)
                 break
     else:
-        print(Colorama.print('Use "python tomato.py -h" to get more information.', 'yellow'))
+        Timer.show(parameters.date, parameters.verbose)
+        # print(Colorama.print('Use "python tomato.py -h" to get more information.', 'yellow'))
 
 
 def get_input_parameters():
@@ -973,7 +973,7 @@ def get_input_parameters():
     parser.add_argument('-c', '--proceed', dest='proceed', action='store_true',
                         help='proceed(continue) work and stop nap.')
     parser.add_argument('-ck', '--check', dest='check', action='store_true', help="check status of now's work.")
-    parser.add_argument('-s', '--show', dest='show', action='store_true', help='show work procedure of the day.')
+    parser.add_argument('-s', '--show', dest='show', action='store_true', help='show work procedure of the day. [default]')
     parser.add_argument('-v', '--verbose', dest='verbose', action='store_true',
                         help='show procedure verbose, use with --show command.')
     parser.add_argument('-d', '--date', dest='date', type=str, default=Date.today(), help='''choose specific date. 
