@@ -958,6 +958,24 @@ def clock_functions(parameters, printer):
         Timer.show(parameters.date, parameters.verbose)
         # print(Colorama.print('Use "python tomato.py -h" to get more information.', 'yellow'))
 
+def convert_input_date(date):
+    try:
+        date = int(date)
+    except:
+        pass
+
+    if date is not None and isinstance(date, int):
+        _delta_days = int(date)
+        _date = datetime.datetime.strptime(Date.today(), "%Y-%m-%d") + datetime.timedelta(days=_delta_days)
+        date = _date.strftime("%Y-%m-%d")
+
+    if date == 'now':
+        date = Date.today()
+
+    assert datetime.datetime.strptime(date, "%Y-%m-%d"), "input parameter 'date' format is not valid !"
+
+    return date
+
 
 def get_input_parameters():
     parser = argparse.ArgumentParser(description="""
@@ -1001,15 +1019,8 @@ def get_input_parameters():
     if parameters.print_to_file is None and parameters.black_and_white is False:
         Colorama.with_color = True
 
-    try:
-        parameters.date = int(parameters.date)
-    except:
-        pass
-
-    if parameters.date is not None and isinstance(parameters.date, int):
-        _delta_days = int(parameters.date)
-        _date = datetime.datetime.strptime(Date.today(), "%Y-%m-%d") + datetime.timedelta(days=_delta_days)
-        parameters.date = _date.strftime("%Y-%m-%d")
+    parameters.date = convert_input_date(parameters.date)
+    # parameters.date_calculate = convert_input_date(parameters.date_calculate)
 
     return parameters
 
