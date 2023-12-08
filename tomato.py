@@ -161,7 +161,7 @@ def create_daily_note(date, printer=None):
 
 '''.format(
             date=date,
-            cal=Colorama._cal(DATE.year, DATE.month, DATE.day, for_note=True),
+            cal=Colorama._cal_month_expand(DATE.year, DATE.month, DATE.day, quarter=True, for_note=True),
             last_todo=last_todo)
         fout.write(msg)
     user_infos = get_user_infos(user_name)
@@ -280,7 +280,7 @@ class Colorama(object):
         return cal
 
     @classmethod
-    def _cal_month_expand(cls, year, month, day, indent='', expand=0, quarter=False):
+    def _cal_month_expand(cls, year, month, day, indent='', expand=0, quarter=False, for_note=False):
         def _get_quarter_months(month):
             month = int(month)
             quarter = int((month + 2) / 3)
@@ -318,7 +318,7 @@ class Colorama(object):
                 _lines.append(_line)
             cal_expand_lines.append(indent + '   '.join(_lines))
         _cal_expand = '\n'.join(cal_expand_lines)
-        if Colorama.with_color:
+        if Colorama.with_color and for_note is False:
             date = str(day) if day >= 10 else ' %s' % str(day)
             _cal_expand = re.sub("==", cls.print(date, 'red'), _cal_expand, count=1)
         return _cal_expand
