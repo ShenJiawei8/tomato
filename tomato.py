@@ -104,7 +104,7 @@ def create_daily_note(date, printer=None):
 
         return before_block + [today_line] + today_block if len(today_block) else before_block
 
-    note_path = get_note_path(date)
+    note_path = get_note_@path(date)
     DATE = datetime.datetime.strptime(date, "%Y-%m-%d")
 
     if os.path.isfile(note_path):
@@ -995,9 +995,9 @@ def get_input_parameters():
     parser.add_argument('-v', '--verbose', dest='verbose', action='store_true',
                         help='show procedure verbose, use with --show command.')
     parser.add_argument('-d', '--date', dest='date', type=str, default=Date.today(), help='''choose specific date. 
-        eg : 2021-01-01 or -1 for delta -1 day from today, must use with other commands.''')
+        eg : 2021-01-01 and -1 for delta -1 day from today, must use with other commands.''')
     parser.add_argument('-dc', '--date_calculate', dest='date_calculate', type=str, default=None, help='''Calculate day offset. 
-        eg : 2021-01-01 ("now" for today)to get interval from the date; -1 for delta -1 day from the date, ''')
+        eg : 2021-01-01 ("now" is short for today) to get interval from the date and  -1 for delta -1 day from the date. ''')
     parser.add_argument('-r', '--records', dest='records', action='store_true', help='show workday records.')
     parser.add_argument('-cn', '--create_note', dest='create_note', action='store_true',
                         help='create a note file of the day.')
