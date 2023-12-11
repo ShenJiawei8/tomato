@@ -104,7 +104,7 @@ def create_daily_note(date, printer=None):
 
         return before_block + [today_line] + today_block if len(today_block) else before_block
 
-    note_path = get_note_@path(date)
+    note_path = get_note_path(date)
     DATE = datetime.datetime.strptime(date, "%Y-%m-%d")
 
     if os.path.isfile(note_path):
