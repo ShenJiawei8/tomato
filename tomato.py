@@ -280,7 +280,7 @@ class Colorama(object):
         return cal
 
     @classmethod
-    def _cal_month_expand(cls, year, month, day, indent='', expand=0, quarter=False, for_note=False):
+    def _cal_month_expand(cls, year, month, day, indent='', expand=0, quarter=False, vertical=False, for_note=False):
         def _get_quarter_months(month):
             month = int(month)
             quarter = int((month + 2) / 3)
@@ -308,15 +308,18 @@ class Colorama(object):
         cal_2 = cls._cal(year_2, month_2, 1 if month != month_2 else day, indent='', expand=expand, for_note=True, highlight=False if month != month_2 else True)
 
         cal_expand_lines = []
-        for lines in zip(cal_0.split('\n'), cal_1.split('\n'), cal_2.split('\n')):
-            _lines = []
-            for line in lines:
-                if len(line) < 20:
-                    _line = line + (20 - len(line)) * ' '
-                else:
-                    _line = line
-                _lines.append(_line)
-            cal_expand_lines.append(indent + '   '.join(_lines))
+        if vertical:
+            cal_expand_lines = cal_0.split('\n') + cal_1.split('\n') + cal_2.split('\n')
+        else:
+            for lines in zip(cal_0.split('\n'), cal_1.split('\n'), cal_2.split('\n')):
+                _lines = []
+                for line in lines:
+                    if len(line) < 20:
+                        _line = line + (20 - len(line)) * ' '
+                    else:
+                        _line = line
+                    _lines.append(_line)
+                cal_expand_lines.append(indent + '   '.join(_lines))
         _cal_expand = '\n'.join(cal_expand_lines)
         if Colorama.with_color and for_note is False:
             date = str(day) if day >= 10 else ' %s' % str(day)
@@ -878,8 +881,9 @@ def addtional_functions(parameters, printer):
     elif parameters.calendar:
         DATE = datetime.datetime.strptime(parameters.date, "%Y-%m-%d")
         printer.print()
-        if parameters.verbose:
-            printer.add(Colorama._cal_month_expand(DATE.year, DATE.month, DATE.day), endl=False)
+        verbose = parameters.verbose if parameters.verbose_vertical is False and parameters.verbose_quarter is False else True
+        if verbose:
+            printer.add(Colorama._cal_month_expand(DATE.year, DATE.month, DATE.day, vertical=parameters.verbose_vertical, quarter=parameters.verbose_quarter), endl=False)
         else:
             printer.add(Colorama._cal(DATE.year, DATE.month, DATE.day), endl=False)
         printer.print()
@@ -939,7 +943,7 @@ def clock_functions(parameters, printer):
                 idle_time = get_idle_time()
                 if Timer.is_paused():
                     paused_time = Timer.get_paused_time()
-                    if paused_time is not None and paused_time < 10:
+                    if paused_time is not None and paused_time < 10: # if mannual pause, wait 10s;
                         continue
                     if idle_time < 5:
                         print('*', Date.now(), ': Status auto change to Working')
@@ -994,6 +998,10 @@ def get_input_parameters():
     parser.add_argument('-s', '--show', dest='show', action='store_true', help='show work procedure of the day. [default]')
     parser.add_argument('-v', '--verbose', dest='verbose', action='store_true',
                         help='show procedure verbose, use with --show command.')
+    parser.add_argument('-vv', '--verbose_vertical', dest='verbose_vertical', action='store_true',
+                        help='show calendar verbose with vertical format, use with --calendar command.')
+    parser.add_argument('-vq', '--verbose_quarter', dest='verbose_quarter', action='store_true',
+                        help='show calendar verbose with quarter range, use with --calendar command.')
     parser.add_argument('-d', '--date', dest='date', type=str, default=Date.today(), help='''choose specific date. 
         eg : 2021-01-01 and -1 for delta -1 day from today, must use with other commands.''')
     parser.add_argument('-dc', '--date_calculate', dest='date_calculate', type=str, default=None, help='''Calculate day offset. 
@@ -1009,7 +1017,7 @@ def get_input_parameters():
                         help=''' archive_note note files to the path ''')
     parser.add_argument('-cal', '--calendar', dest='calendar', action='store_true', help='show calendar of the day.')
     parser.add_argument('-clk', '--clock', dest='clock', action='store_true', help='run an Auto Tomato clock.')
-    parser.add_argument('-bw', '--black_and_white', dest='black_and_white', action='store_true',
+    parser.add_argument('-b', '--black_and_white', dest='black_and_white', action='store_true',
                         help='print with black and white.')
     parser.add_argument('-pf', '--print_to_file', dest='print_to_file', type=str, default=None,
                         help='print output to the local file')
