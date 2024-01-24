@@ -12,7 +12,7 @@ import argparse
 import math
 import calendar
 import shutil
-from bin.config import nap_seconds, auto_cut_cross_day, \
+from bin.config import tomato_min, nap_seconds, auto_cut_cross_day, \
     auto_cut_cross_day_interval_hours, work_time_target_hours_one_day, \
     daily_work_note_dir, target_nap_rate, copy_daily_work_note_symlink, \
     user_name, daily_work_time_records_dir, use_notice, note_archive_count, note_archive_path
@@ -424,7 +424,7 @@ class Date():
         hour = '%02d' % int(delta / 3600)
         minute = '%02d' % (int((delta % 3600) / 60) if delta >= 0 else int((delta % 3600 - 3600) / 60))
         second = '%02d' % (int(delta % 60) if delta >= 0 else int(delta % 60 - 60))
-        tomato = '%.2f' % round(float(delta) / float(1800), 2)
+        tomato = '%.2f' % round(float(delta) / float(tomato_min * 60), 2)
         tomato = tomato.zfill(5)
         return hour, minute, second, tomato
 
@@ -468,8 +468,11 @@ class Date():
             start_hour = int(start.strftime("%H"))
             end_min = int(end.strftime("%M"))
             end_hour = int(end.strftime("%H"))
-            end_min = 60 if end_min == 0 and start_hour != end_hour else end_min
-            for i in range(start_min, end_min):
+            end_second = int(end.strftime("%S"))
+            if end_min == 0 and start_hour != end_hour: # 跨小时, 则该小时的 endtime 为 59:59
+                end_min = 59
+                end_second = 59
+            for i in range(start_min, end_min + 1 if end_second > 30 else end_min):
                 hour_map[i] = 1
             return hour_map
 
@@ -806,7 +809,7 @@ class Timer():
             hl_sum_visual = Date.visualize_map(hl_sum)
             for h in Date.hour_list(items[0][0], end_time):
                 cls.printer.add(h[9:] + ': ', endl=False)
-                if h in hl_sum_visual and len(hl_sum_visual[h]):
+                if h in hl_sum_visual:
                     cls.printer.add(hl_sum_visual[h],
                                     '%.2f' % round(float(hl_sum[h]['sum']) / 60, 2))
                 else:
