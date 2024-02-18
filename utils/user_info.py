@@ -49,5 +49,8 @@ def get_user_name():
 
 
 if __name__ == '__main__':
-    print(get_user_name())
+    username = get_user_name()
+    user_infos = get_user_infos(username)
+    print("user name:", username)
+    print("user infos:", user_infos)
     pass
