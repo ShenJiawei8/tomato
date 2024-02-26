@@ -654,7 +654,6 @@ class Timer():
     def auto_cut_cross_day(cls):
         if auto_cut_cross_day is True:
             record_path, last_files, today_file_name, last_file_name, today_symlink, today, last_day, tmp_detail_data = cls.get_file_name()
-            auto_cut_cross_day_interval_hours = 0
             if not os.path.isfile(today_file_name) and get_idle_time() > auto_cut_cross_day_interval_hours * 3600:
                 cls.init()
                 cls.start()
