@@ -853,18 +853,24 @@ class Timer():
             cls.printer.add('* Note: {note_path}'.format(note_path=note_info))
             cls.printer.add()
             DATE = datetime.datetime.strptime(_date, "%Y-%m-%d")
-            cls.printer.add(*Colorama.color_title('Calendar', 'yellow', TABLE_WIDTH))
+            cls.printer.add(*Colorama.color_title('Calendar - {}'.format(_date), 'yellow', TABLE_WIDTH))
             cls.printer.add()
             cls.printer.add(Colorama._cal_month_expand(DATE.year, DATE.month, DATE.day, indent='  ', quarter=True))
-            cls.printer.add()
-            cls.printer.add(*Colorama.color_title('Tomato Timer :  NowTime: ' + Date.now(), 'yellow', TABLE_WIDTH))
+            cls.printer.add(*Colorama.color_title('NowTime: ' + Date.now(), 'yellow', TABLE_WIDTH))
             cls.printer.print()
+
+    @classmethod
+    def edit(cls, specific_date=None):
+        _specific_date = cls.last_file_name if specific_date == Date.today() else os.path.join(cls.record_path,
+                                                                                               specific_date)
+
+        os.system('vi {}'.format(_specific_date))
 
 
 def addtional_functions(parameters, printer):
     # Addtional Functions
     if parameters.debug:
-        return True
+        pass
 
     if parameters.create_note:
         create_daily_note(parameters.date, printer=printer)
@@ -913,6 +919,10 @@ def clock_functions(parameters, printer):
         printer.print()
         return
 
+    if parameters.debug:
+        print(Timer.last_file_name)
+        pass
+
     if parameters.start:
         Timer.start()
     elif parameters.new_tomato:
@@ -934,6 +944,8 @@ def clock_functions(parameters, printer):
         Timer.show(parameters.date, parameters.verbose)
     elif parameters.records:
         Timer.records()
+    elif parameters.edit:
+        Timer.edit(parameters.date) 
     elif parameters.clock:
         os.system('clear')
         printer.add(Colorama.print('Tomato Clock is Running...', 'yellow', blink=False))
@@ -989,6 +1001,7 @@ def get_input_parameters():
     """)
 
     parser.add_argument('-dg', '--debug', dest='debug', action='store_true', help="debug code")
+    parser.add_argument('-ed', '--edit', dest='edit', action='store_true', help="edit work time record")
     parser.add_argument('-st', '--start', dest='start', action='store_true', help="start one day's work.")
     parser.add_argument('-sp', '--stop', dest='stop', action='store_true', help="stop one day's work.")
     parser.add_argument('-nt', '--new_tomato', dest='new_tomato', action='store_true',
