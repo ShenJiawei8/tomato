@@ -507,9 +507,10 @@ class Date():
 
     @classmethod
     def visualize_map(cls, map_dict):
+
         def _visualize(_map, _sum):
             _sum = int(float(_sum) / float(60))
-            _count = 1
+            _count = 0
             m = ''
             for i in _map:
                 if _count <= int(_sum):
