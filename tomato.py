@@ -21,6 +21,7 @@ from utils.install import install
 
 TABLE_WIDTH = 70
 
+
 class PrintCache():
     def __init__(self, local_file=None):
         self.cache = ''
@@ -284,8 +285,8 @@ class Colorama(object):
         def _get_quarter_months(month):
             month = int(month)
             quarter = int((month + 2) / 3)
-            quarter_first_month = (quarter -1) * 3 + 1
-            return int(quarter_first_month), int(quarter_first_month+ 1), int(quarter_first_month+ 2)
+            quarter_first_month = (quarter - 1) * 3 + 1
+            return int(quarter_first_month), int(quarter_first_month + 1), int(quarter_first_month + 2)
 
         if quarter:
             month_0, month_1, month_2 = _get_quarter_months(month)
@@ -303,9 +304,12 @@ class Colorama(object):
             year_1 = year
             month_1 = month
 
-        cal_0 = cls._cal(year_0, month_0, 1 if month != month_0 else day, indent='', expand=expand, for_note=True, highlight=False if month != month_0 else True)
-        cal_1 = cls._cal(year_1, month_1, 1 if month != month_1 else day, indent='', expand=expand, for_note=True, highlight=False if month != month_1 else True)
-        cal_2 = cls._cal(year_2, month_2, 1 if month != month_2 else day, indent='', expand=expand, for_note=True, highlight=False if month != month_2 else True)
+        cal_0 = cls._cal(year_0, month_0, 1 if month != month_0 else day, indent='', expand=expand, for_note=True,
+                         highlight=False if month != month_0 else True)
+        cal_1 = cls._cal(year_1, month_1, 1 if month != month_1 else day, indent='', expand=expand, for_note=True,
+                         highlight=False if month != month_1 else True)
+        cal_2 = cls._cal(year_2, month_2, 1 if month != month_2 else day, indent='', expand=expand, for_note=True,
+                         highlight=False if month != month_2 else True)
 
         cal_expand_lines = []
         if vertical:
@@ -469,7 +473,7 @@ class Date():
             end_min = int(end.strftime("%M"))
             end_hour = int(end.strftime("%H"))
             end_second = int(end.strftime("%S"))
-            if end_min == 0 and start_hour != end_hour: # 跨小时, 则该小时的 endtime 为 59:59
+            if end_min == 0 and start_hour != end_hour:  # 跨小时, 则该小时的 endtime 为 59:59
                 end_min = 59
                 end_second = 59
             for i in range(start_min, end_min + 1 if end_second > 30 else end_min):
@@ -892,7 +896,9 @@ def addtional_functions(parameters, printer):
         printer.print()
         verbose = parameters.verbose if parameters.verbose_vertical is False and parameters.verbose_quarter is False else True
         if verbose:
-            printer.add(Colorama._cal_month_expand(DATE.year, DATE.month, DATE.day, vertical=parameters.verbose_vertical, quarter=parameters.verbose_quarter), endl=False)
+            printer.add(
+                Colorama._cal_month_expand(DATE.year, DATE.month, DATE.day, vertical=parameters.verbose_vertical,
+                                           quarter=parameters.verbose_quarter), endl=False)
         else:
             printer.add(Colorama._cal(DATE.year, DATE.month, DATE.day), endl=False)
         printer.print()
@@ -946,7 +952,7 @@ def clock_functions(parameters, printer):
     elif parameters.records:
         Timer.records()
     elif parameters.edit:
-        Timer.edit(parameters.date) 
+        Timer.edit(parameters.date)
     elif parameters.clock:
         os.system('clear')
         printer.add(Colorama.print('Tomato Clock is Running...', 'yellow', blink=False))
@@ -958,7 +964,7 @@ def clock_functions(parameters, printer):
                 idle_time = get_idle_time()
                 if Timer.is_paused():
                     paused_time = Timer.get_paused_time()
-                    if paused_time is not None and paused_time < 10: # if mannual pause, wait 10s;
+                    if paused_time is not None and paused_time < 10:  # if mannual pause, wait 10s;
                         continue
                     if idle_time < 5:
                         print('*', Date.now(), ': Status auto change to Working')
@@ -976,6 +982,7 @@ def clock_functions(parameters, printer):
     else:
         Timer.show(parameters.date, parameters.verbose)
         # print(Colorama.print('Use "python tomato.py -h" to get more information.', 'yellow'))
+
 
 def convert_input_date(date):
     try:
@@ -1011,7 +1018,8 @@ def get_input_parameters():
     parser.add_argument('-c', '--proceed', dest='proceed', action='store_true',
                         help='proceed(continue) work and stop nap.')
     parser.add_argument('-ck', '--check', dest='check', action='store_true', help="check status of now's work.")
-    parser.add_argument('-s', '--show', dest='show', action='store_true', help='show work procedure of the day. [default]')
+    parser.add_argument('-s', '--show', dest='show', action='store_true',
+                        help='show work procedure of the day. [default]')
     parser.add_argument('-v', '--verbose', dest='verbose', action='store_true',
                         help='show procedure verbose, use with --show command.')
     parser.add_argument('-vv', '--verbose_vertical', dest='verbose_vertical', action='store_true',
