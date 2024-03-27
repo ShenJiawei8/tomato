@@ -648,7 +648,7 @@ class Timer():
             with open(cls.last_file_name, 'w') as fout:
                 fout.write(json.dumps(items, indent=4))
                 msg = "{last_day}'s work paused... ".format(last_day=cls.last_day)
-                notice(msg, "Action: Pause work")
+                # notice(msg, "Action: Pause work")
                 cls.printer.add(msg)
         else:
             cls.printer.add('Already paused')
@@ -670,7 +670,7 @@ class Timer():
 
         if not cls.is_paused():
             msg = "Already in working status.".format(last_day=cls.last_day)
-            notice(msg, "Action: Proceed work")
+            # notice(msg, "Action: Proceed work")
             cls.printer.add(msg)
             return
 
@@ -681,7 +681,7 @@ class Timer():
             items.append([Date.now()])
             fout.write(json.dumps(items, indent=4))
             msg = "proceed {last_day}'s work ...".format(last_day=cls.last_day)
-            notice(msg, "Action: Proceed work")
+            # notice(msg, "Action: Proceed work")
             cls.printer.add(msg)
 
         cls.printer.print()
@@ -729,7 +729,7 @@ class Timer():
                 msg = '*' + " Work Status: " + "paused"
                 cls.printer.add(msg)
 
-            notice(msg, "Action: Check work status")
+            # notice(msg, "Action: Check work status")
         cls.printer.print()
 
     @classmethod
