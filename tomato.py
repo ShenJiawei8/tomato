@@ -61,7 +61,7 @@ def notice(content, subtitle=""):
 
 def get_idle_time():
     t = os.popen('ioreg -c IOHIDSystem | grep HIDIdleTime').read()
-    return float(re.search("= (\d*)", t).group(1)) / float(1000000000)
+    return float(re.search(r"= (\d*)", t).group(1)) / float(1000000000)
 
 
 def update_symlink(src, dst):
@@ -90,7 +90,7 @@ def create_daily_note(date, printer=None):
         today_line = None
         in_today_block = False
         for l in work_lines:
-            if "# TODAY:" in l:
+            if "#### TODO" in l:
                 in_today_block = True
                 today_line = l
                 continue
@@ -130,13 +130,13 @@ def create_daily_note(date, printer=None):
                             continue
                         if not get_record:
                             continue
-                        if line and '# DONE:' not in line:
+                        if line and '#### DONE' not in line:
                             _last_todo_list.append(line)
                             continue
                         break
                 _last_todo_list = _simplify_today_work(_last_todo_list)
                 last_todo = ''.join(_last_todo_list)
-                last_todo = re.sub('# TODAY', '# ' + last_day, last_todo)
+                last_todo = re.sub('#### TODO', '#### ' + last_day, last_todo)
                 last_todo = last_todo.rstrip()
                 break
         else:
@@ -147,19 +147,15 @@ def create_daily_note(date, printer=None):
 
     with open(note_path, 'a+') as fout:
         msg = '''{cal}
-
-{date}'s work started, have a nice day ~
+### {date}'s work started, have a nice day ~
 {last_todo}
+    #### TODO
+        [ ] 
 
-        # TODAY:
-            [ ] 
+    #### DONE
+        [x] 
 
-        # DONE:
-            [x] 
-
-@ start work record below
-
-
+### start work record below
 '''.format(
             date=date,
             cal=Colorama._cal_month_expand(DATE.year, DATE.month, DATE.day, quarter=True, for_note=True),
@@ -245,7 +241,7 @@ class Colorama(object):
         s = calendar.month(year, month)
         s = re.sub(r'\b', ' ' * expand, s)
         pre, suf = s.split('Su')
-        date = re.sub('^0', ' ', str(day))
+        date = re.sub(r'^0', ' ', str(day))
         date = date if day >= 10 else ' %s' % date
         if _with_color is False:
             if highlight:
@@ -871,6 +867,11 @@ class Timer():
 
         os.system('vi {}'.format(_specific_date))
 
+    @classmethod
+    def edit_note(cls, specific_date=None):
+        note_path = get_note_path(specific_date)
+        os.system('vi {}'.format(note_path))
+
 
 def addtional_functions(parameters, printer):
     # Addtional Functions
@@ -953,6 +954,8 @@ def clock_functions(parameters, printer):
         Timer.records()
     elif parameters.edit:
         Timer.edit(parameters.date)
+    elif parameters.edit_note:
+        Timer.edit_note(parameters.date)
     elif parameters.clock:
         os.system('clear')
         printer.add(Colorama.print('Tomato Clock is Running...', 'yellow', blink=False))
@@ -1039,6 +1042,8 @@ def get_input_parameters():
                         help=''' archive_note note files counts ''')
     parser.add_argument('-anp', '--archive_note_path', dest='archive_note_path', type=str, default=None,
                         help=''' archive_note note files to the path ''')
+    parser.add_argument('-en', '--edit_note', dest='edit_note', action='store_true',
+                        help='edit the note file of the day.')
     parser.add_argument('-cal', '--calendar', dest='calendar', action='store_true', help='show calendar of the day.')
     parser.add_argument('-clk', '--clock', dest='clock', action='store_true', help='run an Auto Tomato clock.')
     parser.add_argument('-b', '--black_and_white', dest='black_and_white', action='store_true',
