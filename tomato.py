@@ -847,7 +847,7 @@ class Timer():
             cls.printer.add('*', 'Work Time:  ', Date.format_delta(work_time, with_check=False, blink=False),
                             '* CountDown:', Date.format_delta(Date.delta(Date.now(), target_time)))
             cls.printer.add('*', 'Nap Time:   ',
-                            Date.format_delta((wt - work_time), with_check=False, blink=False, tomato_mode=True))
+                            Date.format_delta((wt - work_time), with_check=False, blink=False, tomato_mode=True), '*', 'Sit Time: ', Date.format_delta(Date.delta(start_time, Date.now())) ) 
             cls.printer.add()
             note_path = get_note_path(_date)
             note_info = note_path if os.path.exists(note_path) else "note file is not exist."
