@@ -13,7 +13,7 @@ import math
 import calendar
 import shutil
 from bin.config import tomato_min, nap_seconds, auto_cut_cross_day, \
-    auto_cut_cross_day_interval_hours, work_time_target_hours_one_day, \
+    auto_cut_cross_day_interval_hours, work_time_target_hours_one_day, pay_time_target_hours_one_day, \
     daily_work_note_dir, target_nap_rate, copy_daily_work_note_symlink, \
     user_name, daily_work_time_records_dir, use_notice, note_archive_count, note_archive_path
 from utils.user_info import get_user_infos
@@ -819,7 +819,9 @@ class Timer():
 
             start_time = items[0][0]
             wt = Date.delta(start_time, end_time)
+            sit_time = Date.delta(start_time, Date.now())
             target_time = Date.now(datetime.timedelta(seconds=work_time_target_hours_one_day * 3600 - work_time))
+            target_pay_time = Date.now(datetime.timedelta(seconds=pay_time_target_hours_one_day * 3600 - sit_time))
             cls.printer.add(*Colorama.color_title('Summary', 'yellow', TABLE_WIDTH))
             cls.printer.add()
             target_finish_rate = round(float(work_time) / float(work_time_target_hours_one_day * 3600) * 100)
@@ -847,7 +849,7 @@ class Timer():
             cls.printer.add('*', 'Work Time:  ', Date.format_delta(work_time, with_check=False, blink=False),
                             '* CountDown:', Date.format_delta(Date.delta(Date.now(), target_time)))
             cls.printer.add('*', 'Nap Time:   ',
-                            Date.format_delta((wt - work_time), with_check=False, blink=False, tomato_mode=True), '*', 'Sit Time: ', Date.format_delta(Date.delta(start_time, Date.now())) ) 
+                            Date.format_delta((wt - work_time), with_check=False, blink=False, tomato_mode=True), '*', 'Pay Time: ', target_pay_time[:16], '✅' if target_pay_time <= end_time else '    ')
             cls.printer.add()
             note_path = get_note_path(_date)
             note_info = note_path if os.path.exists(note_path) else "note file is not exist."
