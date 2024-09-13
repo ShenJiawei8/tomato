@@ -95,7 +95,7 @@ def create_daily_note(date, printer=None):
                 today_line = l
                 continue
             if in_today_block:
-                if l.strip() == "[ ]" or len(l.strip()) == 0:
+                if l.strip() == "* [ ]" or len(l.strip()) == 0:
                     continue
                 else:
                     today_block.append(l)
@@ -149,11 +149,11 @@ def create_daily_note(date, printer=None):
         msg = '''{cal}
 ### {date}'s work started, have a nice day ~
 {last_todo}
-    #### TODO
-        [ ] 
+#### TODO
+* [ ]  
 
-    #### DONE
-        [x] 
+#### DONE
+* [x]  
 
 ### start work record below
 '''.format(
@@ -196,6 +196,10 @@ class Colorama(object):
     with_color = False
 
     @classmethod
+    def _red_block(cls, msg):
+        return "\033[45m%s\033[0m" % (msg)
+
+    @classmethod
     def _red(cls, msg):
         return "\033[31m%s\033[0m" % (msg)
 
@@ -212,11 +216,14 @@ class Colorama(object):
         return "\033[5m%s\033[0m" % (msg)
 
     @classmethod
-    def print(cls, msg, color=None, blink=False):
+    def print(cls, msg, color=None, blink=False, block=False):
         if not Colorama.with_color:
             return msg
         if color == 'red':
-            msg = cls._red(msg)
+            if block:
+                msg = cls._red_block(msg)
+            else:
+                msg = cls._red(msg)
         if color == 'blue':
             msg = cls._blue(msg)
         if color == 'yellow':
@@ -269,7 +276,7 @@ class Colorama(object):
                 suf_lines.append(line)
             suf = '\n'.join(suf_lines)
             if highlight:
-                suf = re.sub(date, cls.print(date, 'red'), suf, count=1)
+                suf = re.sub(date, cls.print(date, 'red', block=True), suf, count=1)
             cal = cls.print(pre.split('\n')[0], 'yellow') + '\n' + cls.print(pre.split('\n')[1], 'blue') + cls.print(
                 'Su', 'blue') + suf
         cal = re.sub('^', indent, cal)
@@ -323,7 +330,7 @@ class Colorama(object):
         _cal_expand = '\n'.join(cal_expand_lines)
         if Colorama.with_color and for_note is False:
             date = str(day) if day >= 10 else ' %s' % str(day)
-            _cal_expand = re.sub("==", cls.print(date, 'red'), _cal_expand, count=1)
+            _cal_expand = re.sub("==", cls.print(date, 'red', block=True), _cal_expand, count=1)
         return _cal_expand
 
     @classmethod
