@@ -342,6 +342,8 @@ class Colorama(object):
             date_calculate_for_print = Colorama.print(_date_for_calculate.strftime("%Y-%m-%d"), color='blue')
             _delta_days_for_calculate_for_print = str(_delta_days_for_calculate)
             _delta_months = Date.diff_month(datetime.datetime.strptime(date, "%Y-%m-%d"), _date_for_calculate)
+            _delta_year, _delta_month, _delta_day = Date.diff_datetime(datetime.datetime.strptime(date, "%Y-%m-%d"), _date_for_calculate)
+
         else:
             if date_calculate is None or date_calculate == "now":
                 date_calculate = Date.today()
@@ -352,14 +354,17 @@ class Colorama(object):
             _delta_days_for_calculate_for_print = Colorama.print(_delta_days.days, color='blue')
             _delta_months = Date.diff_month(datetime.datetime.strptime(date, "%Y-%m-%d"),
                                             datetime.datetime.strptime(date_calculate, "%Y-%m-%d"))
+            _delta_year, _delta_month, _delta_day  = Date.diff_datetime(datetime.datetime.strptime(date, "%Y-%m-%d"),
+                                            datetime.datetime.strptime(date_calculate, "%Y-%m-%d"))
 
         _delta_years = '%.2f' % round(float(_delta_days_for_calculate) / float(365), 2)
         _delta_years = _delta_years.zfill(5)
 
-        return "* {_delta_days_for_calculate_for_print} days ({_delta_years} years, {_delta_months} months) between {date} ~ {date_calculate_for_print} ". \
+        return "* {_delta_year} Years / {_delta_month} Months / {_delta_day} Days ({_delta_days_for_calculate_for_print} days) between {date} ~ {date_calculate_for_print}". \
             format(_delta_days_for_calculate_for_print=_delta_days_for_calculate_for_print,
-                   _delta_years=_delta_years,
-                   _delta_months=_delta_months,
+                   _delta_year=_delta_year,
+                   _delta_month=_delta_month,
+                   _delta_day=_delta_day,
                    date=date,
                    date_calculate_for_print=date_calculate_for_print)
 
@@ -400,6 +405,28 @@ class Date():
     @classmethod
     def diff_month(cls, d1, d2):
         return (d2.year - d1.year) * 12 + d2.month - d1.month
+
+    @classmethod
+    def diff_datetime(cls, d1, d2):
+        diff_year = (d2.year - d1.year) if d2.month > d1.month else (d2.year - d1.year - 1)
+
+        diff_month = (d2.month - d1.month) if d2.month > d1.month else (d2.month - d1.month + 12)
+
+        if d2.day < d1.day:
+            diff_month = diff_month - 1
+
+        if d2.day >= d1.day:
+            diff_day = d2.day - d1.day
+        else:
+            first_day_d1 = datetime.datetime.strptime("{year}-{month}-01".format(year=d1.year, month=d1.month),
+                                                                  "%Y-%m-%d")
+            d1_next_month = first_day_d1 + datetime.timedelta(days=32)
+
+            d1_next_month_first_day = datetime.datetime.strptime("{year}-{month}-01".format(year=d1_next_month.year, month=d1_next_month.month),
+                                                                 "%Y-%m-%d")
+
+            diff_day = (d1_next_month_first_day - d1).days - 1 + d2.day
+        return diff_year, diff_month, diff_day
 
     @classmethod
     def format_delta(cls, delta, tomato_mode=True, with_check=False, blink=False, nap_notice=False):
