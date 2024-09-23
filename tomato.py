@@ -287,7 +287,7 @@ class Colorama(object):
     def _cal_month_expand(cls, year, month, day, indent='', expand=0, quarter=False, vertical=False, for_note=False):
         def _get_quarter_months(month):
             month = int(month)
-            quarter = int((month + 2) / 3)
+            quarter = Date.get_quarter(month)
             quarter_first_month = (quarter - 1) * 3 + 1
             return int(quarter_first_month), int(quarter_first_month + 1), int(quarter_first_month + 2)
 
@@ -408,9 +408,9 @@ class Date():
 
     @classmethod
     def diff_datetime(cls, d1, d2):
-        diff_year = (d2.year - d1.year) if d2.month > d1.month else (d2.year - d1.year - 1)
+        diff_year = (d2.year - d1.year) if d2.month >= d1.month else (d2.year - d1.year - 1)
 
-        diff_month = (d2.month - d1.month) if d2.month > d1.month else (d2.month - d1.month + 12)
+        diff_month = (d2.month - d1.month) if d2.month >= d1.month else (d2.month - d1.month + 12)
 
         if d2.day < d1.day:
             diff_month = diff_month - 1
@@ -577,6 +577,9 @@ class Date():
                 result[h] = _visualize(d['map'], d['sum'])
         return result
 
+    @classmethod
+    def get_quarter(cls, month):
+        return int((month + 2) / 3)
 
 class Timer():
 
@@ -890,7 +893,7 @@ class Timer():
             cls.printer.add('* Note: {note_path}'.format(note_path=note_info))
             cls.printer.add()
             DATE = datetime.datetime.strptime(_date, "%Y-%m-%d")
-            cls.printer.add(*Colorama.color_title('Calendar - {}'.format(_date), 'yellow', TABLE_WIDTH))
+            cls.printer.add(*Colorama.color_title('Calendar - {} / Q{}'.format(_date, Date.get_quarter(DATE.month)), 'yellow', TABLE_WIDTH))
             cls.printer.add()
             cls.printer.add(Colorama._cal_month_expand(DATE.year, DATE.month, DATE.day, indent='  ', quarter=True))
             cls.printer.add(*Colorama.color_title('NowTime: ' + Date.now(), 'yellow', TABLE_WIDTH))
