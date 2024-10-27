@@ -200,6 +200,10 @@ class Colorama(object):
         return "\033[45m%s\033[0m" % (msg)
 
     @classmethod
+    def _blue_block(cls, msg):
+        return "\033[44m%s\033[0m" % (msg)
+
+    @classmethod
     def _red(cls, msg):
         return "\033[31m%s\033[0m" % (msg)
 
@@ -225,7 +229,10 @@ class Colorama(object):
             else:
                 msg = cls._red(msg)
         if color == 'blue':
-            msg = cls._blue(msg)
+            if block:
+                msg = cls._blue_block(msg)
+            else:
+                msg = cls._blue(msg)
         if color == 'yellow':
             msg = cls._yellow(msg)
         if blink:
@@ -331,6 +338,7 @@ class Colorama(object):
         if Colorama.with_color and for_note is False:
             date = str(day) if day >= 10 else ' %s' % str(day)
             _cal_expand = re.sub("==", cls.print(date, 'red', block=True), _cal_expand, count=1)
+            _cal_expand = re.sub("Sa Su", cls.print("Sa Su", 'blue', block=True), _cal_expand)
         return _cal_expand
 
     @classmethod
