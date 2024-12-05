@@ -200,11 +200,19 @@ class Colorama(object):
         return "\033[45m%s\033[0m" % (msg)
 
     @classmethod
+    def _deep_red_block(cls, msg):
+        return "\033[41m%s\033[0m" % (msg)
+
+    @classmethod
     def _blue_block(cls, msg):
         return "\033[44m%s\033[0m" % (msg)
 
     @classmethod
     def _red(cls, msg):
+        return "\033[35m%s\033[0m" % (msg)
+
+    @classmethod
+    def _deep_red(cls, msg):
         return "\033[31m%s\033[0m" % (msg)
 
     @classmethod
@@ -223,6 +231,11 @@ class Colorama(object):
     def print(cls, msg, color=None, blink=False, block=False):
         if not Colorama.with_color:
             return msg
+        if color == 'deep-red':
+            if block:
+                msg = cls._deep_red_block(msg)
+            else:
+                msg = cls._deep_red(msg)
         if color == 'red':
             if block:
                 msg = cls._red_block(msg)
@@ -339,6 +352,8 @@ class Colorama(object):
             date = str(day) if day >= 10 else ' %s' % str(day)
             _cal_expand = re.sub("==", cls.print(date, 'red', block=True), _cal_expand, count=1)
             _cal_expand = re.sub("Sa Su", cls.print("Sa Su", 'blue', block=True), _cal_expand)
+            _cal_expand = re.sub("Mo Tu We Th Fr", cls.print("Mo Tu We Th Fr", 'deep-red', block=True), _cal_expand)
+            #
         return _cal_expand
 
     @classmethod
@@ -416,9 +431,9 @@ class Date():
 
     @classmethod
     def diff_datetime(cls, d1, d2):
-        diff_year = (d2.year - d1.year) if d2.month >= d1.month else (d2.year - d1.year - 1)
+        diff_year = (d2.year - d1.year) if d2.month > d1.month else (d2.year - d1.year - 1)
 
-        diff_month = (d2.month - d1.month) if d2.month >= d1.month else (d2.month - d1.month + 12)
+        diff_month = (d2.month - d1.month) if d2.month > d1.month else (d2.month - d1.month + 12)
 
         if d2.day < d1.day:
             diff_month = diff_month - 1
@@ -556,9 +571,9 @@ class Date():
             m = ''
             for i in _map:
                 if _count <= int(_sum):
-                    m += Colorama.print('▓', 'blue') if i else Colorama.print('▓', 'red')
+                    m += Colorama.print('▓', 'blue') if i else Colorama.print('▓', 'deep-red')
                 else:
-                    m += Colorama.print('░', 'blue') if i else Colorama.print('░', 'red')
+                    m += Colorama.print('░', 'blue') if i else Colorama.print('░', 'deep-red')
                 _count += 1
             return m
 
@@ -858,7 +873,7 @@ class Timer():
                     cls.printer.add(hl_sum_visual[h],
                                     '%.2f' % round(float(hl_sum[h]['sum']) / 60, 2))
                 else:
-                    cls.printer.add(Colorama.print('░', 'red') * 60, '00.00')
+                    cls.printer.add(Colorama.print('░', 'deep-red') * 60, '00.00')
 
             cls.printer.print()
 
