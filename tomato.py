@@ -431,16 +431,19 @@ class Date():
 
     @classmethod
     def diff_datetime(cls, d1, d2):
-        diff_year = (d2.year - d1.year) if d2.month > d1.month else (d2.year - d1.year - 1)
+        diff_year = (d2.year - d1.year) if (d2.month > d1.month) or (d2.month == d1.month and d2.day >= d1.day) else (d2.year - d1.year - 1)
 
-        diff_month = (d2.month - d1.month) if d2.month > d1.month else (d2.month - d1.month + 12)
-
-        if d2.day < d1.day:
-            diff_month = diff_month - 1
+        diff_month = (d2.month - d1.month) if (d2.month > d1.month) or (d2.month == d1.month and d2.day >= d1.day) else (d2.month - d1.month + 12)
 
         if d2.day >= d1.day:
             diff_day = d2.day - d1.day
         else:
+            if diff_month > 0:
+                diff_month = diff_month - 1
+            else:
+                diff_year = diff_year - 1
+                diff_month = 12
+
             first_day_d1 = datetime.datetime.strptime("{year}-{month}-01".format(year=d1.year, month=d1.month),
                                                                   "%Y-%m-%d")
             d1_next_month = first_day_d1 + datetime.timedelta(days=32)
