@@ -196,8 +196,20 @@ class Colorama(object):
     with_color = False
 
     @classmethod
+    def _double_underline(cls, msg):
+        return "\033[21m%s\033[0m" % (msg)
+
+    @classmethod
+    def _delete_line(cls, msg):
+        return "\033[9m%s\033[0m" % (msg)
+
+    @classmethod
     def _red_block(cls, msg):
         return "\033[45m%s\033[0m" % (msg)
+
+    @classmethod
+    def _pink_block(cls, msg):
+        return "\033[105m%s\033[0m" % (msg)
 
     @classmethod
     def _deep_red_block(cls, msg):
@@ -248,6 +260,8 @@ class Colorama(object):
                 msg = cls._blue(msg)
         if color == 'yellow':
             msg = cls._yellow(msg)
+        if color == 'pink':
+            msg = cls._pink_block(msg)
         if blink:
             return cls._blink(msg)
         return msg
@@ -297,7 +311,7 @@ class Colorama(object):
             suf = '\n'.join(suf_lines)
             if highlight:
                 suf = re.sub(date, cls.print(date, 'red', block=True), suf, count=1)
-            cal = cls.print(pre.split('\n')[0], 'yellow') + '\n' + cls.print(pre.split('\n')[1], 'blue') + cls.print(
+            cal = cls.print("".join(list(cls.color_title(pre.split('\n')[0].strip(), color='yellow', length=20, delimiter="_")))) + '\n' + cls.print(pre.split('\n')[1], 'blue') + cls.print(
                 'Su', 'blue') + suf
         cal = re.sub('^', indent, cal)
         cal = re.sub('\n', '\n' + indent, cal)
@@ -327,11 +341,11 @@ class Colorama(object):
             year_1 = year
             month_1 = month
 
-        cal_0 = cls._cal(year_0, month_0, 1 if month != month_0 else day, indent='', expand=expand, for_note=True,
+        cal_0 = cls._cal(year_0, month_0, 1 if month != month_0 else day, indent='', expand=expand, for_note=False,
                          highlight=False if month != month_0 else True)
-        cal_1 = cls._cal(year_1, month_1, 1 if month != month_1 else day, indent='', expand=expand, for_note=True,
+        cal_1 = cls._cal(year_1, month_1, 1 if month != month_1 else day, indent='', expand=expand, for_note=False,
                          highlight=False if month != month_1 else True)
-        cal_2 = cls._cal(year_2, month_2, 1 if month != month_2 else day, indent='', expand=expand, for_note=True,
+        cal_2 = cls._cal(year_2, month_2, 1 if month != month_2 else day, indent='', expand=expand, for_note=False,
                          highlight=False if month != month_2 else True)
 
         cal_expand_lines = []
@@ -348,48 +362,12 @@ class Colorama(object):
                     _lines.append(_line)
                 cal_expand_lines.append(indent + '   '.join(_lines))
         _cal_expand = '\n'.join(cal_expand_lines)
-        if Colorama.with_color and for_note is False:
-            date = str(day) if day >= 10 else ' %s' % str(day)
-            _cal_expand = re.sub("==", cls.print(date, 'red', block=True), _cal_expand, count=1)
-            _cal_expand = re.sub("Sa Su", cls.print("Sa Su", 'blue', block=True), _cal_expand)
-            _cal_expand = re.sub("Mo Tu We Th Fr", cls.print("Mo Tu We Th Fr", 'deep-red', block=True), _cal_expand)
-            #
+        # if Colorama.with_color and for_note is False:
+        #     date = str(day) if day >= 10 else ' %s' % str(day)
+            # _cal_expand = re.sub("==", cls.print(date, 'red', block=True), _cal_expand, count=1)
+            # _cal_expand = re.sub("Sa Su", cls.print("Sa Su", 'blue', block=True), _cal_expand)
+            # _cal_expand = re.sub("Mo Tu We Th Fr", cls.print("Mo Tu We Th Fr", 'deep-red', block=True), _cal_expand)
         return _cal_expand
-
-    @classmethod
-    def _cal_date_interval(cls, date, date_calculate):
-        if isinstance(date_calculate, int):
-            _delta_days_for_calculate = int(date_calculate)
-            _date_for_calculate = datetime.datetime.strptime(date, "%Y-%m-%d") + datetime.timedelta(
-                days=_delta_days_for_calculate)
-            date_calculate_for_print = Colorama.print(_date_for_calculate.strftime("%Y-%m-%d"), color='blue')
-            _delta_days_for_calculate_for_print = str(_delta_days_for_calculate)
-            _delta_months = Date.diff_month(datetime.datetime.strptime(date, "%Y-%m-%d"), _date_for_calculate)
-            _delta_year, _delta_month, _delta_day = Date.diff_datetime(datetime.datetime.strptime(date, "%Y-%m-%d"), _date_for_calculate)
-
-        else:
-            if date_calculate is None or date_calculate == "now":
-                date_calculate = Date.today()
-            _delta_days = datetime.datetime.strptime(date_calculate, "%Y-%m-%d") - datetime.datetime.strptime(date,
-                                                                                                              "%Y-%m-%d")
-            _delta_days_for_calculate = _delta_days.days
-            date_calculate_for_print = date_calculate
-            _delta_days_for_calculate_for_print = Colorama.print(_delta_days.days, color='blue')
-            _delta_months = Date.diff_month(datetime.datetime.strptime(date, "%Y-%m-%d"),
-                                            datetime.datetime.strptime(date_calculate, "%Y-%m-%d"))
-            _delta_year, _delta_month, _delta_day  = Date.diff_datetime(datetime.datetime.strptime(date, "%Y-%m-%d"),
-                                            datetime.datetime.strptime(date_calculate, "%Y-%m-%d"))
-
-        _delta_years = '%.2f' % round(float(_delta_days_for_calculate) / float(365), 2)
-        _delta_years = _delta_years.zfill(5)
-
-        return "* {_delta_year} Years / {_delta_month} Months / {_delta_day} Days ({_delta_days_for_calculate_for_print} days) between {date} ~ {date_calculate_for_print}". \
-            format(_delta_days_for_calculate_for_print=_delta_days_for_calculate_for_print,
-                   _delta_year=_delta_year,
-                   _delta_month=_delta_month,
-                   _delta_day=_delta_day,
-                   date=date,
-                   date_calculate_for_print=date_calculate_for_print)
 
 
 class Date():
@@ -431,6 +409,11 @@ class Date():
 
     @classmethod
     def diff_datetime(cls, d1, d2):
+        reverse = False
+        if d1 > d2:
+            reverse = True
+            d1, d2 = d2, d1
+
         diff_year = (d2.year - d1.year) if (d2.month > d1.month) or (d2.month == d1.month and d2.day >= d1.day) else (d2.year - d1.year - 1)
 
         diff_month = (d2.month - d1.month) if (d2.month > d1.month) or (d2.month == d1.month and d2.day >= d1.day) else (d2.month - d1.month + 12)
@@ -452,7 +435,7 @@ class Date():
                                                                  "%Y-%m-%d")
 
             diff_day = (d1_next_month_first_day - d1).days - 1 + d2.day
-        return diff_year, diff_month, diff_day
+        return (diff_year, diff_month, diff_day) if not reverse else (-diff_year, -diff_month, -diff_day)
 
     @classmethod
     def format_delta(cls, delta, tomato_mode=True, with_check=False, blink=False, nap_notice=False):
@@ -574,9 +557,9 @@ class Date():
             m = ''
             for i in _map:
                 if _count <= int(_sum):
-                    m += Colorama.print('▓', 'blue') if i else Colorama.print('▓', 'deep-red')
+                    m += Colorama.print('▓', 'blue') if i else Colorama.print('▓', 'red')
                 else:
-                    m += Colorama.print('░', 'blue') if i else Colorama.print('░', 'deep-red')
+                    m += Colorama.print('░', 'blue') if i else Colorama.print('░', 'red')
                 _count += 1
             return m
 
@@ -606,6 +589,42 @@ class Date():
     @classmethod
     def get_quarter(cls, month):
         return int((month + 2) / 3)
+
+    @classmethod
+    def cal_date_interval(cls, date, date_calculate):
+        if isinstance(date_calculate, int):
+            _delta_days_for_calculate = int(date_calculate)
+            _date_for_calculate = datetime.datetime.strptime(date, "%Y-%m-%d") + datetime.timedelta(
+                days=_delta_days_for_calculate)
+            date_calculate_for_print = Colorama.print(_date_for_calculate.strftime("%Y-%m-%d"), color='blue')
+            _delta_days_for_calculate_for_print = str(_delta_days_for_calculate)
+            _delta_months = Date.diff_month(datetime.datetime.strptime(date, "%Y-%m-%d"), _date_for_calculate)
+            _delta_year, _delta_month, _delta_day = Date.diff_datetime(datetime.datetime.strptime(date, "%Y-%m-%d"), _date_for_calculate)
+
+        else:
+            if date_calculate is None or date_calculate == "now":
+                date_calculate = Date.today()
+            _delta_days = datetime.datetime.strptime(date_calculate, "%Y-%m-%d") - datetime.datetime.strptime(date,
+                                                                                                              "%Y-%m-%d")
+            _delta_days_for_calculate = _delta_days.days
+            date_calculate_for_print = date_calculate
+            _delta_days_for_calculate_for_print = Colorama.print(_delta_days.days, color='blue')
+            _delta_months = Date.diff_month(datetime.datetime.strptime(date, "%Y-%m-%d"),
+                                            datetime.datetime.strptime(date_calculate, "%Y-%m-%d"))
+            _delta_year, _delta_month, _delta_day  = Date.diff_datetime(datetime.datetime.strptime(date, "%Y-%m-%d"),
+                                                                        datetime.datetime.strptime(date_calculate, "%Y-%m-%d"))
+
+        _delta_years = '%.2f' % round(float(_delta_days_for_calculate) / float(365), 2)
+        _delta_years = _delta_years.zfill(5)
+
+        return "* {_delta_year} Years / {_delta_month} Months / {_delta_day} Days ({_delta_days_for_calculate_for_print} days) between {date} ~ {date_calculate_for_print}". \
+            format(_delta_days_for_calculate_for_print=_delta_days_for_calculate_for_print,
+                   _delta_year=_delta_year,
+                   _delta_month=_delta_month,
+                   _delta_day=_delta_day,
+                   date=date,
+                   date_calculate_for_print=date_calculate_for_print)
+
 
 class Timer():
 
@@ -876,7 +895,7 @@ class Timer():
                     cls.printer.add(hl_sum_visual[h],
                                     '%.2f' % round(float(hl_sum[h]['sum']) / 60, 2))
                 else:
-                    cls.printer.add(Colorama.print('░', 'deep-red') * 60, '00.00')
+                    cls.printer.add(Colorama.print('░', 'red') * 60, '00.00')
 
             cls.printer.print()
 
@@ -905,7 +924,7 @@ class Timer():
             cls.printer.add('*', 'All Time:   ', Date.format_delta(wt, with_check=False, blink=False, tomato_mode=True),
                             '* Work Rate:',
                             Colorama.print(str(round(float(work_time) / float(wt) * 100)) + ' %', 'blue'),
-                            ', Nap Rate:',
+                            '; Nap Rate:',
                             Colorama.print(nap_rate_str, 'blue') if nap_rate <= target_nap_rate else Colorama.print(
                                 nap_rate_str, 'red', blink=False))
 
@@ -975,7 +994,7 @@ def addtional_functions(parameters, printer):
             parameters.date_calculate = int(parameters.date_calculate)
         except:
             pass
-        msg = Colorama._cal_date_interval(parameters.date, parameters.date_calculate)
+        msg = Date.cal_date_interval(parameters.date, parameters.date_calculate)
         printer.add(*Colorama.color_title('Date Calculator', 'yellow', length=len(msg)))
         printer.add(msg)
         printer.print()
