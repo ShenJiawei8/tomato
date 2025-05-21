@@ -304,17 +304,20 @@ class Colorama(object):
                         sat, sun = weekend[0], weekend[1]
 
                     sat = sat if len(sat) > 0 and int(sat) >= 10 else ' %s' % sat if len(sat) > 0 else '  '
-                    sun = sun if len(sun) > 0 and int(sun) >= 10 else ' %s' % sun
+                    sun = sun if len(sun) > 0 and int(sun) >= 10 else ' %s' % sun if len(sun) > 0 else '  '
                     line = line if len(line) < 17 else line[:15] + cls.print(sat, 'yellow') + ' ' + cls.print(sun,
                                                                                                               'yellow')
                 suf_lines.append(line)
             suf = '\n'.join(suf_lines)
             if highlight:
                 suf = re.sub(date, cls.print(date, 'red', block=True), suf, count=1)
-            cal = cls.print("".join(list(cls.color_title(pre.split('\n')[0].strip(), color='yellow', length=20, delimiter="_")))) + '\n' + cls.print(pre.split('\n')[1], 'blue') + cls.print(
-                'Su', 'blue') + suf
+        _with_color_bak = Colorama.with_color
+        Colorama.with_color = _with_color
+        cal = cls.print("".join(list(cls.color_title(pre.split('\n')[0].strip(), color='yellow', length=20, delimiter="_")))) + '\n' + cls.print(pre.split('\n')[1], 'blue') + cls.print(
+            'Su', 'blue') + suf
         cal = re.sub('^', indent, cal)
         cal = re.sub('\n', '\n' + indent, cal)
+        Colorama.with_color = _with_color_bak
         return cal
 
     @classmethod
@@ -341,11 +344,11 @@ class Colorama(object):
             year_1 = year
             month_1 = month
 
-        cal_0 = cls._cal(year_0, month_0, 1 if month != month_0 else day, indent='', expand=expand, for_note=False,
+        cal_0 = cls._cal(year_0, month_0, 1 if month != month_0 else day, indent='', expand=expand, for_note=for_note,
                          highlight=False if month != month_0 else True)
-        cal_1 = cls._cal(year_1, month_1, 1 if month != month_1 else day, indent='', expand=expand, for_note=False,
+        cal_1 = cls._cal(year_1, month_1, 1 if month != month_1 else day, indent='', expand=expand, for_note=for_note,
                          highlight=False if month != month_1 else True)
-        cal_2 = cls._cal(year_2, month_2, 1 if month != month_2 else day, indent='', expand=expand, for_note=False,
+        cal_2 = cls._cal(year_2, month_2, 1 if month != month_2 else day, indent='', expand=expand, for_note=for_note,
                          highlight=False if month != month_2 else True)
 
         cal_expand_lines = []
@@ -604,6 +607,7 @@ class Date():
         else:
             if date_calculate is None or date_calculate == "now":
                 date_calculate = Date.today()
+
             _delta_days = datetime.datetime.strptime(date_calculate, "%Y-%m-%d") - datetime.datetime.strptime(date,
                                                                                                               "%Y-%m-%d")
             _delta_days_for_calculate = _delta_days.days
@@ -913,7 +917,7 @@ class Timer():
             # blink = False if target_finish_rate > 90 else True)
             cls.printer.add('*', 'Start Time: ', start_time[:16], '     * Target Finish Rate: ', target_finish_rate_str)
             if specific_date == Date.today():
-                cls.printer.add('* Target Time:', target_time[:16], '✅' if target_time <= Date.now() else '    ',
+                cls.printer.add('* Target Time:', target_time[:16], '✅  ' if target_time <= Date.now() else '    ',
                                 '* Work Rate Target:   ', Colorama.print(str(round(
                         float(work_time_target_hours_one_day * 3600) / float(
                             work_time_target_hours_one_day * 3600 + wt - work_time) * 100)) + ' %', 'blue'))
