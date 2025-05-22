@@ -321,7 +321,7 @@ class Colorama(object):
         return cal
 
     @classmethod
-    def _cal_month_expand(cls, year, month, day, indent='', expand=0, quarter=False, vertical=False, for_note=False):
+    def _cal_month_expand(cls, year, month, day, indent='', expand=0, quarter=False, vertical=False, for_note=False, highlight=True):
         def _get_quarter_months(month):
             month = int(month)
             quarter = Date.get_quarter(month)
@@ -345,11 +345,11 @@ class Colorama(object):
             month_1 = month
 
         cal_0 = cls._cal(year_0, month_0, 1 if month != month_0 else day, indent='', expand=expand, for_note=for_note,
-                         highlight=False if month != month_0 else True)
+                         highlight=False if month != month_0 or highlight == False else True)
         cal_1 = cls._cal(year_1, month_1, 1 if month != month_1 else day, indent='', expand=expand, for_note=for_note,
-                         highlight=False if month != month_1 else True)
+                         highlight=False if month != month_1 or highlight == False else True)
         cal_2 = cls._cal(year_2, month_2, 1 if month != month_2 else day, indent='', expand=expand, for_note=for_note,
-                         highlight=False if month != month_2 else True)
+                         highlight=False if month != month_2 or highlight == False else True)
 
         cal_expand_lines = []
         if vertical:
@@ -371,6 +371,18 @@ class Colorama(object):
             # _cal_expand = re.sub("Sa Su", cls.print("Sa Su", 'blue', block=True), _cal_expand)
             # _cal_expand = re.sub("Mo Tu We Th Fr", cls.print("Mo Tu We Th Fr", 'deep-red', block=True), _cal_expand)
         return _cal_expand
+
+    @classmethod
+    def _cal_year_expand(cls, year, month, day, indent='', expand=0, for_note=False):
+        def _get_year_quarters(month):
+            quarters_month_list = [1, 4, 7, 10]
+            month = int(month)
+            quarter = Date.get_quarter(month)
+            quarter_first_month = (quarter - 1) * 3 + 1
+            return [(year, m, 1, False) if m!= quarter_first_month else (year, month, day, True) for m in quarters_month_list]
+        
+        year_quarters = _get_year_quarters(month)
+        return "\n".join([cls._cal_month_expand(q[0], q[1], q[2], indent=indent, expand=expand, quarter=True, vertical=False, for_note=for_note, highlight=q[3]) for q in year_quarters])
 
 
 class Date():
@@ -964,7 +976,7 @@ class Timer():
 def addtional_functions(parameters, printer):
     # Addtional Functions
     if parameters.debug:
-        pass
+        return True
 
     if parameters.create_note:
         create_daily_note(parameters.date, printer=printer)
@@ -983,10 +995,14 @@ def addtional_functions(parameters, printer):
     elif parameters.calendar:
         DATE = datetime.datetime.strptime(parameters.date, "%Y-%m-%d")
         printer.print()
-        verbose = parameters.verbose if parameters.verbose_vertical is False and parameters.verbose_quarter is False else True
+        verbose = parameters.verbose if parameters.verbose_vertical is False and parameters.verbose_quarter is False \
+            and parameters.verbose_year is False else True
         if verbose:
-            printer.add(
-                Colorama._cal_month_expand(DATE.year, DATE.month, DATE.day, vertical=parameters.verbose_vertical,
+            if parameters.verbose_year:
+                printer.add(Colorama._cal_year_expand(DATE.year, DATE.month, DATE.day), endl=False)
+            else:
+                printer.add(
+                    Colorama._cal_month_expand(DATE.year, DATE.month, DATE.day, vertical=parameters.verbose_vertical,
                                            quarter=parameters.verbose_quarter), endl=False)
         else:
             printer.add(Colorama._cal(DATE.year, DATE.month, DATE.day), endl=False)
@@ -1016,8 +1032,7 @@ def clock_functions(parameters, printer):
         return
 
     if parameters.debug:
-        print(Timer.last_file_name)
-        pass
+        return
 
     if parameters.start:
         Timer.start()
@@ -1117,6 +1132,8 @@ def get_input_parameters():
                         help='show calendar verbose with vertical format, use with --calendar command.')
     parser.add_argument('-vq', '--verbose_quarter', dest='verbose_quarter', action='store_true',
                         help='show calendar verbose with quarter range, use with --calendar command.')
+    parser.add_argument('-vy', '--verbose_year', dest='verbose_year', action='store_true',
+                        help='show calendar verbose with year range, use with --calendar command.')
     parser.add_argument('-d', '--date', dest='date', type=str, default=Date.today(), help='''choose specific date. 
         eg : 2021-01-01 and -1 for delta -1 day from today, must use with other commands.''')
     parser.add_argument('-dc', '--date_calculate', dest='date_calculate', type=str, default=None, help='''Calculate day offset. 
