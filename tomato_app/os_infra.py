@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import os
 import re
+import sys
 from subprocess import call
 from typing import Mapping
 
@@ -44,11 +45,15 @@ def notice(content: str, subtitle: str = "") -> None:
 
 def get_idle_time() -> float:
     """
-    Return the current user idle time in seconds on macOS.
+    Return the current user idle time in seconds.
 
-    通过 ``ioreg -c IOHIDSystem | grep HIDIdleTime`` 获取纳秒级空闲时间，
-    再换算成秒。
+    macOS 通过 ``ioreg -c IOHIDSystem | grep HIDIdleTime`` 获取纳秒级空闲时间。
+    其它平台（Linux 等）没有等价的通用接口，直接返回 0.0，
+    上层逻辑（如 ``auto_cut_cross_day`` 与 ``--clock``）会按“用户始终活跃”处理，
+    从而不触发跨天自动切换或自动 pause。
     """
+    if sys.platform != "darwin":
+        return 0.0
     t = os.popen("ioreg -c IOHIDSystem | grep HIDIdleTime").read()
     return float(re.search(r"= (\d*)", t).group(1)) / float(1000000000)
 
