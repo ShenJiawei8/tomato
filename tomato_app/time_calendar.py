@@ -17,8 +17,11 @@ from __future__ import annotations
 
 import calendar
 import datetime
+import gzip
 import math
+import os
 import re
+from pathlib import Path
 from typing import Dict, List, Tuple
 
 from icalendar import Calendar
@@ -34,6 +37,7 @@ class Colorama(object):
     """
 
     with_color = False
+    _calendar_cache: Tuple[List[Tuple[datetime.date, datetime.date]], List[Tuple[datetime.date, datetime.date]]] | None = None
 
     @classmethod
     def _double_underline(cls, msg: str) -> str:
@@ -50,6 +54,10 @@ class Colorama(object):
     @classmethod
     def _pink_block(cls, msg: str) -> str:
         return "\033[105m%s\033[0m" % (msg)
+
+    @classmethod
+    def _green_block(cls, msg: str) -> str:
+        return "\033[42m%s\033[0m" % (msg)
 
     @classmethod
     def _deep_red_block(cls, msg: str) -> str:
@@ -132,42 +140,71 @@ class Colorama(object):
         """
         Render a single month calendar, optionally with colors and highlighting.
         """
+        def _append_mark_dates(ranges, target):
+            for start, end in ranges:
+                cur = max(start, month_start)
+                _end = min(end, month_end)
+                while cur < _end:
+                    target.add(cur.strftime("%Y-%m-%d"))
+                    cur = cur + datetime.timedelta(days=1)
+
         _with_color = False if for_note is True else Colorama.with_color
         s = calendar.month(year, month)
         s = re.sub(r"\b", " " * expand, s)
         pre, suf = s.split("Su")
         date = re.sub(r"^0", " ", str(day))
         date = date if day >= 10 else " %s" % date
+        holiday_dates: set[str] = set()
+        work_day_dates: set[str] = set()
+        month_start = datetime.date(year, month, 1)
+        month_end = datetime.date(year, month, calendar.monthrange(year, month)[1]) + datetime.timedelta(days=1)
+        date_str = "{year}-{month:02d}-{day:02d}".format(year=year, month=month, day=day)
+
+        try:
+            holidays, work_days = cls.read_calendar()
+            _append_mark_dates(holidays, holiday_dates)
+            _append_mark_dates(work_days, work_day_dates)
+        except Exception:
+            holiday_dates = set()
+            work_day_dates = set()
+
         if _with_color is False:
-            if highlight:
-                suf = re.sub(date, "==", suf, count=1)
+            _, num_days = calendar.monthrange(year, month)
+            for d in range(num_days, 0, -1):
+                d_text = str(d) if d >= 10 else " %s" % d
+                d_str = "{year}-{month:02d}-{day:02d}".format(year=year, month=month, day=d)
+                if highlight and d == day:
+                    suf = re.sub(d_text, "==", suf, count=1)
+                elif d_str in holiday_dates:
+                    suf = re.sub(d_text, "[]", suf, count=1)
+                elif d_str in work_day_dates:
+                    suf = re.sub(d_text, "$$", suf, count=1)
             cal = pre + "Su" + suf
         else:
             date_lines = suf.split("\n")
             suf_lines: List[str] = []
+
+            def _render_day_token(match):
+                token = match.group(0)
+                day_int = int(token)
+                current = "{year}-{month:02d}-{day:02d}".format(
+                    year=year, month=month, day=day_int
+                )
+                if current in holiday_dates:
+                    rendered = cls._green_block(token)
+                elif current in work_day_dates:
+                    rendered = cls._deep_red_block(token)
+                else:
+                    rendered = token
+                if highlight and day_int == day:
+                    rendered = cls._blink(rendered)
+                return rendered
+
             for line in date_lines:
                 if len(line) > 0:
-                    weekend = re.split(" +", line[15:].strip())
-                    if len(weekend) == 1 and len(line.strip()) >= 4:
-                        sat = weekend[0]
-                        sun = ""
-                    elif len(weekend) == 1 and len(line.strip()) < 4:
-                        sun = weekend[0]
-                        sat = ""
-                    else:
-                        sat, sun = weekend[0], weekend[1]
-
-                    sat = sat if len(sat) > 0 and int(sat) >= 10 else " %s" % sat if len(sat) > 0 else "  "
-                    sun = sun if len(sun) > 0 and int(sun) >= 10 else " %s" % sun if len(sun) > 0 else "  "
-                    line = (
-                        line
-                        if len(line) < 17
-                        else line[:15] + cls.print(sat, "yellow") + " " + cls.print(sun, "yellow")
-                    )
+                    line = re.sub(r"(?<!\d)\d{1,2}(?!\d)", _render_day_token, line)
                 suf_lines.append(line)
             suf = "\n".join(suf_lines)
-            if highlight:
-                suf = re.sub(date, cls.print(date, "red", block=True), suf, count=1)
         _with_color_bak = Colorama.with_color
         Colorama.with_color = _with_color
         cal = (
@@ -313,26 +350,44 @@ class Colorama(object):
         """
         Read Chinese mainland public holidays from ``cn_zh.ics``.
         """
-        holidays = []
-        work_days = []
-        with open("cn_zh.ics", "rb") as fin:
-            cal = Calendar.from_ical(fin.read())
+        if cls._calendar_cache is not None:
+            return cls._calendar_cache
+
+        holidays: List[Tuple[datetime.date, datetime.date]] = []
+        work_days: List[Tuple[datetime.date, datetime.date]] = []
+        calendar_path = Path(__file__).resolve().parent.parent / "cn_zh.ics"
+        if not os.path.exists(calendar_path):
+            calendar_path = Path("cn_zh.ics")
+
+        with open(calendar_path, "rb") as fin:
+            raw = fin.read()
+            if raw[:2] == b"\x1f\x8b":
+                raw = gzip.decompress(raw)
+            cal = Calendar.from_ical(raw)
 
             for component in cal.walk():
                 if component.name == "VEVENT":
                     summary = component.get("SUMMARY")
                     start = component.get("DTSTART").dt
-                    end = component.get("DTEND").dt
+                    end = component.get("DTEND")
+                    end = end.dt if end is not None else (start + datetime.timedelta(days=1))
+                    summary = str(summary)
+
+                    if isinstance(start, datetime.datetime):
+                        start = start.date()
+                    if isinstance(end, datetime.datetime):
+                        end = end.date()
 
                     if "班" in summary:
-                        work_days.append([start, end])
+                        work_days.append((start, end))
 
-                    if "休" not in summary:
-                        holidays.append([start, end])
+                    if "休" in summary:
+                        holidays.append((start, end))
 
                     continue
 
-        return holidays, work_days
+        cls._calendar_cache = (holidays, work_days)
+        return cls._calendar_cache
 
     @classmethod
     def is_holiday(cls, date, holidays=None, work_days=None) -> bool:
