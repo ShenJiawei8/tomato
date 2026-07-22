@@ -181,8 +181,6 @@ def clock_functions(parameters, printer: PrintCache) -> None:
         Timer.edit(parameters.date)
     elif parameters.edit_note:
         Timer.edit_note(parameters.date)
-    elif parameters.vim_note:
-        Timer.vim_note(parameters.date)
     elif parameters.clock:
         # 自动番茄钟循环：根据键盘/鼠标空闲时间自动 pause / proceed
         os.system("clear")
@@ -339,13 +337,6 @@ def get_input_parameters():
         dest="edit_note",
         action="store_true",
         help="edit the note file of the day.",
-    )
-    parser.add_argument(
-        "-vn",
-        "--vim_note",
-        dest="vim_note",
-        action="store_true",
-        help="open the note file of the day in vim (respects -d).",
     )
     parser.add_argument(
         "-cal", "--calendar", dest="calendar", action="store_true", help="show calendar of the day."

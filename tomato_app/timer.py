@@ -568,12 +568,4 @@ class Timer:
         note_path = get_note_path(specific_date)
         os.system("vi {}".format(note_path))
 
-    @classmethod
-    def vim_note(cls, specific_date: str | None = None) -> None:
-        """
-        Open the daily note markdown file in ``vim``.
-        """
-        note_path = get_note_path(specific_date)
-        os.system("vim {}".format(note_path))
-
 
